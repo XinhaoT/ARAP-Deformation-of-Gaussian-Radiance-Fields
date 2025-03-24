@@ -1,0 +1,3 @@
+[submodule "extlibs/CudaRasterizer"]
+	path = submodules/CudaRasterizer
+	url = https://github.com/XinhaoT/CudaRasterizer.git
