@@ -148,9 +148,6 @@ namespace sibr {
 
 		vector<float> transparance_for_test;
 		bool flag_update_sp;
-		bool flag_update_sp_mouse;
-		bool flag_update_gs_mouse;
-		bool flag_select_sp;
 		bool flag_clip_containing;
 		bool show_all_samples;
 		bool additional_samples = true;
@@ -158,7 +155,6 @@ namespace sibr {
 		PointPlusPayload* samples_pos_payload_gpu;
 		vector<PointPlusPayload> samples_pos_payload_vector;
 
-		int sphere_state;
 
 		std::vector<bool> too_small;
 
@@ -291,7 +287,7 @@ namespace sibr {
 		Image<unsigned char, 3> 	imageData;
 
 		GLShader					MeshShader;
-		bool flag_show_mesh = false;
+
 		int is_synthetic = 0;
 		int has_soup = 0;
 		bool high_quality = false;
@@ -324,7 +320,6 @@ namespace sibr {
 		int show_count;
 
 		int node_num = 150;
-		float threshold_d = 0.05f;
 
 		float degrees = 45.0f;
 		
@@ -366,53 +361,27 @@ namespace sibr {
 		void getCentersMesh();
 		void getSamplesMesh();
 		void getOverallAABB();
-		std::vector<SamplePoint> getSamplesfromGs();
 		std::vector<SamplePoint> getGridSamples();
-		void FastBuildSamplesPerGs(unsigned int gs_idx);
-		void FastBuildSamplesNeighbourGs();
-		void UpdateSamplesNeighbourGs();
 		void GPUSetupSamplesFeatures();
 		void GPUOptimize();
-		void PreprocessRelationshipsForGPU();
 		void CopyFeatureFromCPU2GPU();
 		void CopyFeatureFromGPU2CPU();
-		void SetTestAimFeatures();
 		void RefreshAdam();
 		void UpdateFeatures();
-		void StoreAllStates(std::string state_name);
-		void getEllipse(int gs_idx);
-		void getSphere(int i);
-		void SetupSamples();
 		void SetupUniformSamples(std::vector<SamplePoint>& current_sps);
-		void SetupPerGsSamples(std::vector<SamplePoint>& current_sps);
-		void RebuildSamplesKdTree();
-		void QuerySamplesKdTree();
-		void FetchAimIdx();
 		void TakeSnapshot();
 		void LoadSnapshot(int idx);
 		void UpdateGsCoverRange();
-		void ReSampleScene();
-		void getSelectedSampleInfo();
-		void FilterCoveringGs();
 		void RebuildGraph();
 		void RecordDeformation();
 		void LoadDeformation();
-		void LoadComparePly();
-		void UpdateRotationFast(const DeformGraph &dm);
-		void UpdateAsOcta(const DeformGraph &dm);
-		void UpdateAsCov(const DeformGraph &dm);
-		void UpdateAsSixPoints(const DeformGraph &dm);
 		void UpdateAsSixPointsWithdrawBad(const DeformGraph &dm);
-		void UpdateSamplesSH(const DeformGraph &dm);
 		void FastUpdateSamplesSH(const DeformGraph &dm);
-		void GPUGetInitialSamplesFeature();
 		void RunHistoricalDeform();
 		void CleanDeformHistory();
-		void GlobalRotation(int axis);
 		void GetEndPoints();
 		void UpdateContainingRelationship();
 		void GetAdaLpfRatio();
-		void GetAdaLpfRatio_old();
 		void UpdateCenterRadius();
 		void JudgeEmptyGrid();
 		void CopyPartialInfoFromGPU2CPU();
@@ -425,7 +394,6 @@ namespace sibr {
 		void LoadDeformScript1();
 		void RunDeformScript();
 		void UpdateContainingRelationshipWithStaticGrids();
-		void LogMovedGaussiansAndSamples();
 		void LoadDeformScript2();
 		void LoadDeformScript3();
 		void LoadDeformScript4();
@@ -490,7 +458,6 @@ namespace sibr {
 
 		float _weighting_factor = 1.0f;
 
-		bool _is_regular = false;
 		bool _during_deform = false;
 		int _reset_convergency_interval = 50;
 

@@ -135,57 +135,10 @@ std::vector<int> sample_control_points(const std::vector<Pos> &vertices, int nod
     return node_idx;
 }
 
-bool hack_node_judgement(Pos pos){
-    float a = abs(pos(0));
-    float b = abs(pos(2));
-
-    if (a > 0.28){
-        // if ((b > 0.13) && (b < 0.17)){
-        //     return true;
-        // }
-        // if ((b < 0.01)){
-        //     return true;
-        // }
-        return true;
-    }
-
-    if (b > 0.28){
-        // if ((a > 0.13) && (a < 0.17)){
-        //     return true;
-        // }
-        // if ((a < 0.01)){
-        //     return true;
-        // }
-        return true;
-    }
-
-    // if ((a > 0.29) && (b > 0.29)){
-    //     return true;
-    // }
-    return false;
-}
 
 std::vector<int> farthest_control_points_sampling(const std::vector<Pos> pos_vector, int node_num, bool only_surface){
 
     std::vector<unsigned int> origin_indices;
-
-    if (only_surface){
-        int idx = 0;
-        int o_idx = 0;
-        for (auto it = pos_vector.begin(); it != pos_vector.end();){
-            if (! hack_node_judgement(pos_vector[idx]))
-            {
-                it = pos_vector.erase(it);
-            }
-            else
-            {
-                it++;
-                idx++;
-                origin_indices.push_back(o_idx);
-            }
-            o_idx++;
-        }
-    }
 
     int node_num_cur = node_num;
     if (node_num_cur > pos_vector.size()){
@@ -217,12 +170,6 @@ std::vector<int> farthest_control_points_sampling(const std::vector<Pos> pos_vec
 
         if (node_idx.size() == node_num_cur) {
             break;
-        }
-    }
-
-    if (only_surface){
-        for (int i = 0; i < node_idx.size(); i++){
-            node_idx[i] = origin_indices[node_idx[i]];
         }
     }
     

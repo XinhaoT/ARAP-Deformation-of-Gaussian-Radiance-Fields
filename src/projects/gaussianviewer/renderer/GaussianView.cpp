@@ -554,11 +554,7 @@ void sibr::GaussianView::init(const sibr::BasicIBRScene::Ptr & ibrScene, uint re
 	flag_show_samples = false;
 	show_aim = false;
 	show_error = false;
-	flag_update_sp_mouse = false;
-	flag_update_gs_mouse = false;
-	flag_select_sp = false;
 	flag_clip_containing = true;
-	sphere_state = 0;
 	show_all_samples = false;
 
 	int P = count;
@@ -908,166 +904,7 @@ void sibr::GaussianView::init(const sibr::BasicIBRScene::Ptr & ibrScene, uint re
 	RefreshAdam();
 }
 
-void sibr::GaussianView::ReSampleScene(){
-	getOverallAABB();
-	sample_positions.clear();
-	backup_sample_positions.clear();
 
-	std::vector<SamplePoint> sps_vec = getSamplesfromGs();
-	std::cout << "size of sps_vec: " << sps_vec.size() << std::endl;
-
-	sps = SamplePoints(sps_vec);
-	setupWeightsforSamples(deform_graph);
-
-	sample_feature_shs.resize(sps.sample_points.size());
-	sps.neighbour_pdfs.resize(sps.sample_points.size());
-	feature_opacity_vector.resize(sps.sample_points.size());
-
-	std::vector<int> configs;
-	configs =loadVectorFromFile(configfile);
-	_estimated_coeff = configs[0];
-	_estimated_const = configs[1];
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(aim_index_cuda));
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(sample_pos_cuda));
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(cur_feature_cuda));
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(feature_grad_cuda));
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(aim_feature_cuda));
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(cur_opacity_cuda));
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&aim_index_cuda, sizeof(int) * sps.sample_points.size()));
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&sample_pos_cuda, sizeof(Pos) * sps.sample_points.size()));
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&cur_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size()));
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&feature_grad_cuda, sizeof(SHs<3>) * sps.sample_points.size()));
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&aim_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size()));
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&cur_opacity_cuda, sizeof(float) * sps.sample_points.size()));
-
-	// samples_pos_payload_vector.resize(sps.sample_points.size());
-	// #pragma omp parallel for
-	// for (int i = 0; i < sps.sample_points.size(); i++){
-	// 	samples_pos_payload_vector[i].position = {sample_positions[i](0), sample_positions[i](1), sample_positions[i](2)};
-	// 	samples_pos_payload_vector[i].payload = i;
-	// }
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(samples_pos_payload_gpu));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&samples_pos_payload_gpu, sizeof(PointPlusPayload)*sps.sample_points.size()));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(samples_pos_payload_gpu, samples_pos_payload_vector.data(), sizeof(PointPlusPayload)*sps.sample_points.size(), cudaMemcpyHostToDevice));
-
-	// BuildTreeCUDA(samples_pos_payload_gpu, sps.sample_points.size());
-
-	#pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		Scale s_3d;
-		s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[0]+0.0f);
-		s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[1]+0.0f);
-		s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[2]+0.0f);
-		scale_3d_clip[gs_idx] = s_3d;
-		float scale_max = max(s_3d.scale[0], s_3d.scale[1]);
-		scale_max = max(scale_max, s_3d.scale[2]);
-		scale_3d_max[gs_idx] = scale_max;
-	}
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(scale_3d_max_gpu, scale_3d_max.data(), sizeof(float)*count, cudaMemcpyHostToDevice));
-
-	// EstimateCUDA(scale_3d_max_gpu, count, gs_containing_maximum_offset, total_estimated_containings, _estimated_coeff, _estimated_const);
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(neighbouring_sp_idx));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&neighbouring_sp_idx, sizeof(int)*total_estimated_containings));
-    // CUDA_SAFE_CALL_ALWAYS(cudaMemset(neighbouring_sp_idx, 0, sizeof(int)*total_estimated_containings));
-
-	// QueryTreeCUDA(samples_pos_payload_gpu, sps.sample_points.size(), pos_cuda, scale_3d_max_gpu, count, gs_containing_prefix_sum, gs_containing_maximum_offset, neighbouring_sp_idx, sps.total_neighbouring);
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(paired_gs_idx));
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(paired_sp_idx));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&paired_gs_idx, sizeof(int)*sps.total_neighbouring));
-    // CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&paired_sp_idx, sizeof(int)*sps.total_neighbouring));
-
-	// GetPairCUDA(count, gs_containing_prefix_sum, gs_containing_maximum_offset, paired_gs_idx, paired_sp_idx, sps.total_neighbouring, neighbouring_sp_idx);
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(samples_pos_payload_vector.data(), samples_pos_payload_gpu, sizeof(PointPlusPayload)*sps.sample_points.size(), cudaMemcpyDeviceToHost));
-
-	// #pragma omp parallel for
-	// for (int i = 0; i < sps.sample_points.size(); i++){
-	// 	sample_positions[i] = Pos(samples_pos_payload_vector[i].position.x, samples_pos_payload_vector[i].position.y, samples_pos_payload_vector[i].position.z);
-	// 	sps.sample_points[samples_pos_payload_vector[i].payload].aim_index = i;
-	// }
-
-	// FetchAimIdx();
-	// GPUSetupSamplesFeatures();
-	RefreshAdam();
-}
-
-
-void	sibr::GaussianView::RebuildSamplesKdTree(){
-	// #pragma omp parallel for
-	// for (int i = 0; i < sps.sample_points.size(); i++){
-	// 	samples_pos_payload_vector[i].position = {sample_positions[i](0), sample_positions[i](1), sample_positions[i](2)};
-	// }
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(samples_pos_payload_gpu, samples_pos_payload_vector.data(), sizeof(PointPlusPayload)*sps.sample_points.size(), cudaMemcpyHostToDevice));
-
-	// BuildTreeCUDA(samples_pos_payload_gpu, sps.sample_points.size());
-	// FetchAimIdx();
-}
-
-void	sibr::GaussianView::QuerySamplesKdTree(){
-	auto start = std::chrono::steady_clock::now();
-	
-	if (local_gs_idx.size()){
-		#pragma omp parallel for
-		for (int gs_idx = 0; gs_idx < count; gs_idx++){
-			scale_3d_max[gs_idx] = 0.0f;
-		}
-		#pragma omp parallel for
-		for (int i = 0; i < local_gs_idx.size(); i++){
-			int gs_idx = local_gs_idx[i];
-			Scale s_3d;
-			s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[0]+0.0f);
-			s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[1]+0.0f);
-			s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[2]+0.0f);
-			float scale_max = max(s_3d.scale[0], s_3d.scale[1]);
-			scale_max = max(scale_max, s_3d.scale[2]);
-			scale_3d_max[gs_idx] = scale_max;
-		}
-	}
-	else{
-		#pragma omp parallel for
-		for (int gs_idx = 0; gs_idx < count; gs_idx++){
-			Scale s_3d;
-			s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[0]+0.0f);
-			s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[1]+0.0f);
-			s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[2]+0.0f);
-			scale_3d_clip[gs_idx] = s_3d;
-			float scale_max = max(s_3d.scale[0], s_3d.scale[1]);
-			scale_max = max(scale_max, s_3d.scale[2]);
-			scale_3d_max[gs_idx] = scale_max;
-		}
-	}
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(scale_3d_max_gpu, scale_3d_max.data(), sizeof(float)*count, cudaMemcpyHostToDevice));
-
-	// EstimateCUDA(scale_3d_max_gpu, count, gs_containing_maximum_offset, total_estimated_containings, _estimated_coeff, _estimated_const);
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(neighbouring_sp_idx));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&neighbouring_sp_idx, sizeof(int)*total_estimated_containings));
-    // CUDA_SAFE_CALL_ALWAYS(cudaMemset(neighbouring_sp_idx, 0, sizeof(int)*total_estimated_containings));
-
-	// QueryTreeCUDA(samples_pos_payload_gpu, sps.sample_points.size(), pos_cuda, scale_3d_max_gpu, count, gs_containing_prefix_sum, gs_containing_maximum_offset, neighbouring_sp_idx, sps.total_neighbouring);
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(paired_gs_idx));
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(paired_sp_idx));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&paired_gs_idx, sizeof(int)*sps.total_neighbouring));
-    // CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&paired_sp_idx, sizeof(int)*sps.total_neighbouring));
-
-	// GetPairCUDA(count, gs_containing_prefix_sum, gs_containing_maximum_offset, paired_gs_idx, paired_sp_idx, sps.total_neighbouring, neighbouring_sp_idx);
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(samples_pos_payload_vector.data(), samples_pos_payload_gpu, sizeof(PointPlusPayload)*sps.sample_points.size(), cudaMemcpyDeviceToHost));
-	// #pragma omp parallel for
-	// for (int i = 0; i < sps.sample_points.size(); i++){
-	// 	sample_positions[i] = Pos(samples_pos_payload_vector[i].position.x, samples_pos_payload_vector[i].position.y, samples_pos_payload_vector[i].position.z);
-	// }
-
-	auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsedSeconds = end - start;
-    std::cout << "QuerySamplesKdTree took " << elapsedSeconds.count() << " seconds." << std::endl;
-}
 
 void	sibr::GaussianView::ResetAll(){
 	for (int i = 0; i < count; i++){
@@ -1076,12 +913,6 @@ void	sibr::GaussianView::ResetAll(){
 		scale_vector[i] = scale_backup_vector[i];
 		opacity_vector[i] = opacity_backup_vector[i];
 		shs_vector[i] = shs_backup_vector[i];
-		// if (flag_perform_shs_rot){
-		// 	shs_vector[i] = shs_backup_vector[i];
-		// }
-		// else{
-		// 	shs_backup_vector[i] = shs_vector[i];
-		// }
 	}
 
 	GetEndPoints();
@@ -1138,11 +969,6 @@ void	sibr::GaussianView::ResetAll(){
 
 	moved_gaussians = vector<int>(count, 0);
 
-	// std::vector<int> configs;
-	// configs =loadVectorFromFile(configfile);
-	// _estimated_coeff = configs[0];
-	// _estimated_const = configs[1];
-
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(pos_cuda, pos_vector.data(), sizeof(Pos) * count, cudaMemcpyHostToDevice));
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(rot_cuda, rot_vector.data(), sizeof(Rot) * count, cudaMemcpyHostToDevice));
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(shs_cuda, shs_vector.data(), sizeof(SHs<3>) * count, cudaMemcpyHostToDevice));
@@ -1156,10 +982,7 @@ void	sibr::GaussianView::ResetAll(){
 	GPUSetupSamplesFeatures();
 	RefreshAdam();
 
-	// ReSampleScene();
 	drag_history.clear();
-	// snapshots.clear();
-	// _snap_idx = 0;
 	CheckStaticSamples();
 	CheckMovedGaussians();
 }
@@ -1185,6 +1008,7 @@ void	sibr::GaussianView::ResetControls(){
 	drag_history.clear();
 	CheckStaticSamples();
 }
+
 void sibr::GaussianView::setScene(const sibr::BasicIBRScene::Ptr & newScene)
 {
 	_scene = newScene;
@@ -1327,15 +1151,6 @@ void sibr::GaussianView::onRenderIBR(sibr::IRenderTarget & dst, const sibr::Came
 			);
 		}
 		
-
-		// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(is_surface_vector.data(), surface_cuda, count*sizeof(int), cudaMemcpyDeviceToHost));
-
-		// _surface_count = 0;
-		// for (int i = 0; i < count; i++){
-		// 	if (is_surface_vector[i] > 0) {
-		// 		_surface_count += 1;
-		// 	}
-		// }
 		
 		if (!_interop_failed)
 		{
@@ -1591,49 +1406,7 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 		_constraints_on_center = !_constraints_on_center;
 	}
 
-	if (input.key().isPressed(sibr::Key::Z)){
-		_is_regular = !_is_regular;
-	}
 
-
-	if (input.key().isActivated(sibr::Key::V)){
-		if (input.mouseButton().isPressed(sibr::Mouse::Right)){
-			std::cout << "Right is pressed" << std::endl;
-			max_x = cur_pos(0);
-			max_y = cur_pos(1);
-			press_x = cur_pos(0);
-			press_y = cur_pos(1);
-			flag_rect = true;
-		}
-
-		if (input.mouseButton().isReleased(sibr::Mouse::Right)){
-			std::cout << "Right is released" << std::endl;
-			flag_select = true;
-			min_x = min(cur_pos(0), max_x);
-			min_y = min(cur_pos(1), max_y);
-			max_x = max(cur_pos(0), max_x);
-			max_y = max(cur_pos(1), max_y);
-			flag_rect = false;
-
-			float x = (max_x + min_x)/2.0f;
-			float y = (max_y + min_y)/2.0f;
-
-			float distance = 100000.0;
-			int closest_idx = 0;
-			for (unsigned int i = 0; i < sample_positions.size(); i++){
-				Vector2f pos_2d = get_2d_pos(sample_positions[i], T, window_size(0), window_size(1));
-				if ((pos_2d(0) - x) * (pos_2d(0) - x) + (pos_2d(1) - y) * (pos_2d(1) - y) < distance){
-					distance = (pos_2d(0) - x) * (pos_2d(0) - x) + (pos_2d(1) - y) * (pos_2d(1) - y);
-					closest_idx = i;
-				}
-			}
-			global_sp_idx = closest_idx;
-			std::cout << "sample alpha: " << feature_opacity_vector[global_sp_idx] << std::endl;
-			flag_update_sp_mouse = true;
-			flag_select_sp = true;
-			getSelectedSampleInfo();
-		}
-	}
 
 
 	if (input.key().isActivated(sibr::Key::B)){
@@ -1716,11 +1489,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 
 					int offset = (int)(sqrt(pow(xoffset, 2)+pow(yoffset, 2)));
 
-					if (_is_regular){
-						axis = Vector4f(v1(0), v1(1), v1(2), 0.0);
-						offset = yoffset;
-					}
-
 					if (_axis.norm() > 1e-5){
 						UpdateAimPositionTwist(axis, offset, _record_history);
 
@@ -1756,9 +1524,7 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 				if (! _only_deform_gs){
 					UpdatePositionforSamples(deform_graph); // before update the nodes' position
 				}
-				// if (! _only_deform_pos){
-				// 	UpdateRotationFast(deform_graph);
-				// }
+
 				UpdatePosition(deform_graph);
 				UpdateAsSixPointsWithdrawBad(deform_graph);
 				if (nodes_on_mesh){
@@ -1769,10 +1535,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 				}
 				ReloadAimPositions();
 
-				// #pragma omp parallel for
-				// for (int i = 0; i < deform_graph.nodes.size(); i++){
-				// 	deform_graph.nodes[i].Position = cand_points[deform_graph.nodes[i].Vertex_index];
-				// }
 
 				auto update_end = std::chrono::steady_clock::now();
 				std::chrono::duration<double> update_elapsedSeconds = update_end - update_start;
@@ -1797,12 +1559,10 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 
 		float direction = 1.0f;
 		int step_ = drag_history.size() - playback_steps;
-		// bool is_recording = _record_history;
 
 		if (!_drag_direction) {
 			direction = -1.0f; 
 			step_ = playback_steps - 1;
-			// is_recording = false;
 		}
 
 		UpdateAimPosition(drag_history[step_]*direction, false);
@@ -1920,27 +1680,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(opacity_cuda, transparance.data(), sizeof(float) * count, cudaMemcpyHostToDevice));
 	}
 
-	if (flag_update_sp_mouse){
-		sp_idx_in_pair.resize(sps.total_neighbouring);
-		gs_idx_in_pair.resize(sps.total_neighbouring);
-
-		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(sp_idx_in_pair.data(), paired_sp_idx, sizeof(int)*sps.total_neighbouring, cudaMemcpyDeviceToHost));
-		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(gs_idx_in_pair.data(), paired_gs_idx, sizeof(int)*sps.total_neighbouring, cudaMemcpyDeviceToHost));
-
-		#pragma omp parallel for
-		for (int i = 0; i < pos_vector.size(); i++) {
-			global_gs_idx[i] = false;
-		}
-		#pragma omp parallel for
-		for (int i = 0; i < sps.total_neighbouring; i++) {
-			if (sp_idx_in_pair[i] == global_sp_idx){
-				int gs_idx = gs_idx_in_pair[i];
-				global_gs_idx[gs_idx] = true;
-			}
-		}
-		FilterCoveringGs();
-		flag_update_sp_mouse = false;
-	}
 
 	if (input.key().isReleased(sibr::Key::F1)){
 		TakeSnapshot();
@@ -1948,9 +1687,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 	if (input.key().isReleased(sibr::Key::F2)){
 		LoadSnapshot(_snap_idx);
 		std::cout << "LoadSnapshot: " << _snap_idx << std::endl;
-	}
-	if (input.key().isReleased(sibr::Key::F3)){
-		flag_select_sp = !flag_select_sp;
 	}
 	if (input.key().isReleased(sibr::Key::G)){
 		flag_show_nodes = !flag_show_nodes;
@@ -1962,22 +1698,14 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 		flag_show_centers = !flag_show_centers;
 	}
 
-	if (input.key().isReleased(sibr::Key::Y)){
-		sphere_state = (sphere_state + 1) % 3;
-	}
-
 	if (input.key().isReleased(sibr::Key::R)){
 		ResetAll();
 	}
 	if (input.key().isReleased(sibr::Key::T)){
 		ResetControls();
 	}
-	if (input.key().isReleased(sibr::Key::J)){
-		flag_show_mesh = !flag_show_mesh;
-	}
 
 	if (input.key().isReleased(sibr::Key::F4)){
-		//RunTestVKVt(scale_vector[0]);
 		flag_show_samples = !flag_show_samples;
 		if (flag_show_samples){
 			getSamplesMesh();
@@ -1991,10 +1719,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 		flag_clip_containing = !flag_clip_containing;
 	}
 	if (input.key().isReleased(sibr::Key::F6)){
-		// Just for logging something
-		if(_log_moved_ones){
-			LogMovedGaussiansAndSamples();
-		}
 
 		auto start_op = std::chrono::steady_clock::now();
 
@@ -2035,14 +1759,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 	}
 	if (input.key().isReleased(sibr::Key::F8)){
 		show_aim = !show_aim;
-		getSamplesMesh();
-	}
-	if (input.key().isReleased(sibr::Key::F9)){
-		show_error = !show_error;
-		getSamplesMesh();
-	}
-	if (input.key().isReleased(sibr::Key::F10)){
-		show_all_samples = !show_all_samples;
 		getSamplesMesh();
 	}
 	if (input.key().isReleased(sibr::Key::Left)){
@@ -2303,31 +2019,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 	}
 }
 
-void sibr::GaussianView::FilterCoveringGs(){
-	covering_gs_idx.clear();
-	for (int gs_idx = 0; gs_idx < count; gs_idx++) {
-		if (global_gs_idx[gs_idx] == true) {
-			Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-			Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-
-			if (flag_clip_containing){
-				Eigen::Matrix3f scale_inv;
-				scale_inv.setZero();
-				scale_inv.diagonal() = Eigen::Vector3f(1.0/(scale_vector[gs_idx].scale[0]+0.0f), 1.0/(scale_vector[gs_idx].scale[1]+0.0f), 1.0/(scale_vector[gs_idx].scale[2]+0.0f));
-				Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-				Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-				Eigen::Matrix3f sigma_inv = rotation * scale_inv * scale_inv * (rotation.transpose());
-				Pos sample2gs = sample_positions[global_sp_idx] - pos_vector[gs_idx];
-				float log_pdf = sample2gs.transpose() * sigma_inv * sample2gs; 
-				float cur_pdf =  exp(-0.5 *log_pdf);
-				if (cur_pdf*opacity_vector[gs_idx] < CUTOFF_ALPHA) {continue;}
-			}
-
-			covering_gs_idx.push_back(gs_idx);
-		}
-	}
-}
-
 void sibr::GaussianView::UpdateIndicies(DeformGraph& dm){
 	if (block_num == 0) return;
 
@@ -2551,22 +2242,11 @@ void sibr::GaussianView::onGUI()
 
 	ImGui::Checkbox("Is Recording", &_is_record);
 
-	ImGui::InputInt("Padding", &padding, 1, 3);
-	ImGui::InputInt("Grid Num Per Dim", &grid_num, 1, 3);
-	ImGui::Checkbox("Log Moved Gs & Sp", &_log_moved_ones);
-
 	if (ImGui::Button("Clear SnapShots")) {
 		snapshots.clear();
 		_snap_idx = 0;
 		RefreshAdam();
 	}
-
-	if (ImGui::Button("Store the OBJ file")) {
-		std::string output_meshfile(pcd_filepath);
-		output_meshfile.replace(output_meshfile.length()-4, 4, "_output.txt");
-		saveVectorToFile(mesh_points, output_meshfile);
-	}
-
 
 	ImGui::SliderFloat("ALPHA Cutoff Display", &_show_alpha_cutoff, 0.0f, 0.99f);
 	ImGui::Checkbox("Enable Alpha", &_enable_alpha);
@@ -2616,8 +2296,6 @@ void sibr::GaussianView::onGUI()
 
 	ImGui::Begin("Reset Deform Graph");
 	ImGui::InputInt("Node Maximum", &node_num, 1, 5000);
-	ImGui::SliderFloat("Node Distance Threshold", &threshold_d, 0.0f, 0.08f);
-	ImGui::Checkbox("Build Graph on Surface", &_surface_graph);
 	if (ImGui::Button("Rebuild Deform Graph")) {
 		RebuildGraph();
 		drag_history.clear();
@@ -2661,8 +2339,6 @@ void sibr::GaussianView::onGUI()
 	ImGui::Checkbox("Record History", &_record_history);
 	
 	ImGui::Checkbox("Is Twisting", &_is_twist);
-	ImGui::SameLine();
-	ImGui::Checkbox("axis_is_forward", &_is_regular);
 	ImGui::Checkbox("Is Scaling", &_is_scale);
 	ImGui::Checkbox("Constraints on Centers", &_constraints_on_center);
 	ImGui::InputInt("Max Disp Per Step", &_max_displacement_per_step, 1, 10);
@@ -2728,14 +2404,6 @@ void sibr::GaussianView::onGUI()
 
 	if (ImGui::Button("Clean Deform History")){
 		CleanDeformHistory();
-	}
-	if (ImGui::Button("Load Ply")) {
-		compare_ply_path = "";
-		if (sibr::showFilePicker(compare_ply_path, Default)) {
-			if (!compare_ply_path.empty()) {
-				LoadComparePly();
-			}
-		}
 	}
 	ImGui::End();
 
@@ -3534,335 +3202,6 @@ void sibr::GaussianView::UpdateAsSixPointsWithdrawBad(const DeformGraph &dm){
 }
 
 
-void sibr::GaussianView::UpdateAsSixPoints(const DeformGraph &dm){
-
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-
-		Rot o_rot = rot_vector[gs_idx];
-		Eigen::Quaternionf origin_q(o_rot.rot[0], o_rot.rot[1], o_rot.rot[2], o_rot.rot[3]);
-
-		Eigen::Matrix<float, 4, 6> Q;
-		Eigen::Matrix<float, 4, 6> P;
-		// Eigen::Matrix<float, 3, 4> M;
-
-		for (int i = 0; i < 3; i++){
-			Eigen::Vector4f v4;
-			v4 << ends_vector[gs_idx].ends[i].first, 1.0f;
-			Q.col(i*2) = v4;
-			v4 << ends_vector[gs_idx].ends[i].second, 1.0f;
-			Q.col(i*2 + 1) = v4;
-
-			// v4 << ends_vector_next[gs_idx].ends[i].first, 1.0f;
-			// P.col(i*2) = v4;
-			// v4 << ends_vector_next[gs_idx].ends[i].second, 1.0f;
-			// P.col(i*2 + 1) = v4;
-		}
-
-		if (gs_idx == 0){
-			std::cout << "Q: " << Q << std::endl;
-			std::cout << "P: " << P << std::endl;
-		}
-
-		Eigen::MatrixXf M = P * Q.completeOrthogonalDecomposition().pseudoInverse();
-
-		// Update Center
-		Eigen::Matrix<float, 4, 1> orig_pos;
-		orig_pos << pos_vector[gs_idx], 1.0f;
-		pos_vector[gs_idx] = (M*orig_pos).block<3, 1>(0, 0);
-
-		Eigen::Matrix3f dest_rot = (M.block<3, 3>(0, 0)).transpose();
-		Eigen::Matrix3f dest_rot_o = FastgetOthogonalMatrix(dest_rot);
-		Eigen::Vector3f K;
-		Eigen::Matrix3f S;
-		S = FastgetK(dest_rot, dest_rot_o, K, dest_rot_o.transpose().eval());
-		
-		Eigen::Quaternionf q = sibr::quatFromMatrix(dest_rot_o) * origin_q;
-		q.normalize();
-		rot_vector[gs_idx] = {q.w(), q.x(), q.y(), q.z()};
-
-		// Update Scales
-		for (int i = 0; i < 3; i++) {
-			scale_vector[gs_idx].scale[i] = K(i) * scale_vector[gs_idx].scale[i];
-		}
-
-		if (gs_idx == 0){
-			std::cout << "M: " << M << std::endl;
-			std::cout << "M*Q: " << M*Q << std::endl;
-			std::cout << "orig_pos " << orig_pos << std::endl;
-			std::cout << "new pos " << M*orig_pos << std::endl;
-			std::cout << "dest_rot_o: " << dest_rot_o << std::endl;
-			std::cout << "K: " << K << std::endl;
-		}
-
-		// Update SHs
-		Eigen::Matrix3f shs_rot = dest_rot_o.transpose();
-
-		std::vector<float> shs_temp(shs_vector[gs_idx].shs, shs_vector[gs_idx].shs + 48);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		SH_Rotation(shs_rot, shs_temp);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		std::copy(shs_temp.data(), shs_temp.data() + 48, shs_vector[gs_idx].shs);
-
-		// for (int i = 0; i < 3; i++){
-		// 	ends_vector[gs_idx].ends[i].first = ends_vector_next[gs_idx].ends[i].first;
-		// 	ends_vector[gs_idx].ends[i].second = ends_vector_next[gs_idx].ends[i].second;
-		// }
-	}
-
-	// UpdateSamplesSH(dm);
-	return;
-}
-
-
-void sibr::GaussianView::UpdateAsOcta(const DeformGraph &dm){
-
-	// #pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		Eigen::Matrix3f dest_rot;
-		Eigen::Vector3f r0, r1, r2;
-		Rot o_rot = rot_vector[gs_idx];
-		Eigen::Quaternionf origin_q(o_rot.rot[0], o_rot.rot[1], o_rot.rot[2], o_rot.rot[3]);
-
-		std::array<std::pair<Pos, Pos>, 3> ends;
-		ends = ends_vector[gs_idx].ends;
-
-		int axis0, axis1, axis2;
-		axis0 = ends_vector[gs_idx].axises[0]; 
-		axis1 = ends_vector[gs_idx].axises[1]; 
-		axis2 = ends_vector[gs_idx].axises[2]; 
-
-
-		// // Update Rotations Using Othogonal Decomposition
-		r0 = (ends[0].first - ends[0].second)/ 2.0f / ((scale_backup_vector[gs_idx].scale[0]+axis_padding)*end_coeff)*scale_backup_vector[gs_idx].scale[0];
-		r1 = (ends[1].first - ends[1].second)/ 2.0f / ((scale_backup_vector[gs_idx].scale[1]+axis_padding)*end_coeff)*scale_backup_vector[gs_idx].scale[1];
-		r2 = (ends[2].first - ends[2].second)/ 2.0f / ((scale_backup_vector[gs_idx].scale[2]+axis_padding)*end_coeff)*scale_backup_vector[gs_idx].scale[2]; 
-		dest_rot << r0, r1, r2;
-		dest_rot.transposeInPlace();
-		Eigen::Matrix3f dest_rot_o = FastgetOthogonalMatrix(dest_rot);
-		Eigen::Vector3f K;
-		Eigen::Matrix3f S;
-		S = FastgetK(dest_rot, dest_rot_o, K, dest_rot_o.transpose().eval());
-		
-		// Should set from largest to smallest scale...
-		Eigen::Quaternionf q = sibr::quatFromMatrix(dest_rot_o);
-		q.normalize();
-		rot_vector[gs_idx] = {q.w(), q.x(), q.y(), q.z()};
-
-		// Update Scales
-		for (int i = 0; i < 3; i++) {
-			scale_vector[gs_idx].scale[i] = max(K(i), 1e-5f);
-		}
-
-		// Update Center
-		Pos weighted_center(0.0, 0.0, 0.0);
-		// float total_weight = 0.0;
-		for (int i = 0; i < 3; i++) {
-			weighted_center += (ends[i].first+ends[i].second)/2.0f;
-			// total_weight += scale_backup_vector[gs_idx].scale[i];
-		}
-		pos_vector[gs_idx] = weighted_center/3.0f;
-
-
-		// Update SHs
-		Eigen::Matrix3f shs_rot = (q*(origin_q.inverse())).normalized().toRotationMatrix();
-
-		std::vector<float> shs_temp(shs_vector[gs_idx].shs, shs_vector[gs_idx].shs + 48);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		SH_Rotation(shs_rot, shs_temp);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		std::copy(shs_temp.data(), shs_temp.data() + 48, shs_vector[gs_idx].shs);
-
-	}
-
-
-	// UpdateSamplesSH(dm);
-	return;
-}
-
-
-void sibr::GaussianView::UpdateAsCov(const DeformGraph &dm){
-
-	// #pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		Eigen::Matrix3f dest_rot;
-		dest_rot << 0.0f, 0.0f, 0.0f,
-					0.0f, 0.0f, 0.0f,
-					0.0f, 0.0f, 0.0f;
-		Rot o_rot = rot_vector[gs_idx];
-		Eigen::Quaternionf origin_q(o_rot.rot[0], o_rot.rot[1], o_rot.rot[2], o_rot.rot[3]);
-
-		std::array<std::pair<Pos, Pos>, 3> ends;
-		ends = ends_vector[gs_idx].ends;
-
-		// Update Center
-		Pos weighted_center(0.0, 0.0, 0.0);
-		for (int i = 0; i < 3; i++) {
-			weighted_center += (ends[i].first+ends[i].second)/2.0f;
-		}
-		pos_vector[gs_idx] = weighted_center/3.0f;
-
-
-		// Update Rotations Using Covariance Matrix with Polar Decomposition
-		for (int i = 0; i < 3; i++) {
-			Eigen::Vector3f v = (ends[i].first - pos_vector[gs_idx]); // / ((scale_backup_vector[gs_idx].scale[i]+1e-2)*end_coeff)*scale_backup_vector[gs_idx].scale[i];
-			Eigen::Matrix3f vtv = v * v.transpose();
-			dest_rot += vtv;
-
-			v = (ends[i].second - pos_vector[gs_idx]); // / ((scale_backup_vector[gs_idx].scale[i]+1e-2)*end_coeff)*scale_backup_vector[gs_idx].scale[i];
-			vtv = v * v.transpose();
-			dest_rot += vtv;
-		}
-
-		dest_rot /= 6.0f;
-
-		// Eigen::EigenSolver<Eigen::Matrix3f> solver(dest_rot);
-		Eigen::Matrix3f dest_rot_o = getOthogonalMatrix(dest_rot);
-
-		// Eigen::Matrix3f dest_rot_o = FastgetOthogonalMatrix(dest_rot);
-		Eigen::Vector3f K;
-		Eigen::Matrix3f S;
-		S = FastgetK(dest_rot, dest_rot_o, K, dest_rot_o.transpose().eval());
-		
-		Eigen::Quaternionf q = sibr::quatFromMatrix(dest_rot_o);
-		q.normalize();
-		rot_vector[gs_idx] = {q.w(), q.x(), q.y(), q.z()};
-
-
-		// Update SHs
-		Eigen::Matrix3f shs_rot = (q*(origin_q.inverse())).normalized().toRotationMatrix();
-
-		std::vector<float> shs_temp(shs_vector[gs_idx].shs, shs_vector[gs_idx].shs + 48);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		SH_Rotation(shs_rot, shs_temp);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		std::copy(shs_temp.data(), shs_temp.data() + 48, shs_vector[gs_idx].shs);
-
-	}
-
-	// UpdateSamplesSH(dm);
-	return;
-}
-
-
-
-
-void sibr::GaussianView::UpdateSamplesSH(const DeformGraph &dm){
-	vector<Eigen::Matrix3f> othomat_vector(dm.nodes.size());
-	vector<Eigen::Matrix3f> affine_vector(dm.nodes.size());
-	vector<Eigen::Quaternionf> q_vector(dm.nodes.size());
-
-	#pragma omp parallel for
-	for (unsigned int i = 0; i < dm.nodes.size(); i++) {
-		array<double, 9> rotation = dm.rot[i];
-		Eigen::Matrix3f othomat = FastgetOthogonalMatrix(CastRot2Matrix(rotation));
-		// Eigen::Quaternionf q = sibr::quatFromMatrix(othomat);
-		// q.w() = -q.w();
-
-		Eigen::Quaternionf q(othomat);
-		q.normalize();
-		othomat_vector[i] = othomat;
-		q_vector[i] = q;
-		affine_vector[i] = CastRot2Matrix(rotation);
-	}
-
-	#pragma omp parallel for
-	for (unsigned int i = 0; i < sample_positions.size(); i++){
-		if (static_samples[i]) {continue;}
-
-		Eigen::Quaternionf weighted_q(1.0, 0.0, 0.0, 0.0);
-
-		double last_weight = 0.0;
-
-		for (unsigned int j = 0; j < dm.k_nearest; j++) {
-			double cur_weight = sps.sample_points[i].Neighbor_Weights[j];
-			double t = cur_weight / (cur_weight + last_weight);
-			int node_idx = sps.sample_points[i].Neighbor_Nodes[j];
-			weighted_q = Quaternion_S_lerp(weighted_q, q_vector[node_idx], t);
-			last_weight += cur_weight;
-
-		}
-
-		Eigen::Matrix3f shs_rot = weighted_q.normalized().toRotationMatrix();
-		
-		std::vector<float> shs_temp(aim_feature_shs[i].shs, aim_feature_shs[i].shs + 48);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		SH_Rotation(shs_rot, shs_temp);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		std::copy(shs_temp.data(), shs_temp.data() + 48, aim_feature_shs[i].shs);
-	}
-
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(aim_feature_cuda, aim_feature_shs.data(), sizeof(SHs<3>) * sps.sample_points.size(), cudaMemcpyHostToDevice));
-
-
-
-}
-
-
 void sibr::GaussianView::FastUpdateSamplesSH(const DeformGraph &dm){
 	vector<Eigen::Quaternionf> q_vector(dm.nodes.size());
 
@@ -3882,166 +3221,7 @@ void sibr::GaussianView::FastUpdateSamplesSH(const DeformGraph &dm){
 
 }
 
-/// @brief 
-/// @param dm 
-void sibr::GaussianView::UpdateRotationFast(const DeformGraph &dm){
-	vector<Eigen::Matrix3f> othomat_vector(dm.nodes.size());
-	vector<Eigen::Matrix3f> affine_vector(dm.nodes.size());
-	vector<Eigen::Quaternionf> q_vector(dm.nodes.size());
 
-	#pragma omp parallel for
-	for (unsigned int i = 0; i < dm.nodes.size(); i++) {
-		array<double, 9> rotation = dm.rot[i];
-		Eigen::Matrix3f othomat = FastgetOthogonalMatrix(CastRot2Matrix(rotation));
-		Eigen::Quaternionf q = sibr::quatFromMatrix(othomat);
-		// WHY??
-		q.w() = -q.w();
-		q.normalize();
-		othomat_vector[i] = othomat;
-		q_vector[i] = q;
-		affine_vector[i] = CastRot2Matrix(rotation);
-	}
-
-
-	#pragma omp parallel for
-	for (unsigned int i = 0; i < count; i++){
-		Rot o_rot = rot_vector[i];
-
-		Eigen::Quaternionf weighted_q(1.0, 0.0, 0.0, 0.0);
-
-		Eigen::Quaternionf origin_q(o_rot.rot[0], o_rot.rot[1], o_rot.rot[2], o_rot.rot[3]);
-		Eigen::Matrix3f origin_mat = origin_q.normalized().toRotationMatrix();
-
-		double last_weight = 0.0;
-		Eigen::Vector3f weighted_scale(0.0, 0.0, 0.0);
-
-		for (unsigned int j = 0; j < dm.k_nearest; j++) {
-			double cur_weight = vertices[i].Neighbor_Weights[j];
-			double t = cur_weight / (cur_weight + last_weight);
-			int node_idx = vertices[i].Neighbor_Nodes[j];
-			weighted_q = Quaternion_S_lerp(weighted_q, q_vector[node_idx], t);
-
-			if (_deform_options[2]) {
-				Eigen::Vector3f K;
-				FastgetK(affine_vector[node_idx], othomat_vector[node_idx], K, origin_mat);
-				weighted_scale(0) += cur_weight*log(scale_vector[i].scale[0]*K(0));
-				weighted_scale(1) += cur_weight*log(scale_vector[i].scale[1]*K(1));
-				weighted_scale(2) += cur_weight*log(scale_vector[i].scale[2]*K(2));
-			}
-			last_weight += cur_weight;
-		}
-
-		if (_deform_options[1]){
-			origin_q = weighted_q * origin_q;
-			o_rot = {origin_q.w(), origin_q.x(), origin_q.y(), origin_q.z()};
-			rot_vector[i] = o_rot;
-		}
-
-		if (_deform_options[2]) {
-			scale_vector[i].scale[0] = exp(weighted_scale(0));
-			scale_vector[i].scale[1] = exp(weighted_scale(1));
-			scale_vector[i].scale[2] = exp(weighted_scale(2));
-		}
-
-		if (_deform_options[3]) {
-			Eigen::Matrix3f shs_rot = weighted_q.toRotationMatrix();
-
-			std::vector<float> shs_temp(shs_vector[i].shs, shs_vector[i].shs + 48);
-
-
-			for (int k = 0; k < 16; k++){
-				if (k % 2 == 1){
-					shs_temp[k*3] = -shs_temp[k*3];
-					shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-					shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-				}
-			}
-
-			SH_Rotation(shs_rot, shs_temp);
-
-			for (int k = 0; k < 16; k++){
-				if (k % 2 == 1){
-					shs_temp[k*3] = -shs_temp[k*3];
-					shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-					shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-				}
-			}
-
-			std::copy(shs_temp.data(), shs_temp.data() + 48, shs_vector[i].shs);
-		}
-
-	}
-
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(q_vector_cuda, q_vector.data(), sizeof(Eigen::Quaternionf) * q_vector.size(), cudaMemcpyHostToDevice));
-
-
-	#pragma omp parallel for
-	for (unsigned int i = 0; i < sample_positions.size(); i++){
-
-		Eigen::Quaternionf weighted_q(1.0, 0.0, 0.0, 0.0);
-
-		double last_weight = 0.0;
-
-		for (unsigned int j = 0; j < dm.k_nearest; j++) {
-			double cur_weight = sps.sample_points[i].Neighbor_Weights[j];
-			double t = cur_weight / (cur_weight + last_weight);
-			int node_idx = sps.sample_points[i].Neighbor_Nodes[j];
-			weighted_q = Quaternion_S_lerp(weighted_q, q_vector[node_idx], t);
-			last_weight += cur_weight;
-
-		}
-
-		Eigen::Matrix3f shs_rot = weighted_q.normalized().toRotationMatrix();
-		
-		std::vector<float> shs_temp(aim_feature_shs[i].shs, aim_feature_shs[i].shs + 48);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		SH_Rotation(shs_rot, shs_temp);
-
-		for (int k = 0; k < 16; k++){
-			if (k % 2 == 1){
-				shs_temp[k*3] = -shs_temp[k*3];
-				shs_temp[k*3 + 1] = -shs_temp[k*3 + 1];
-				shs_temp[k*3 + 2] = -shs_temp[k*3 + 2];
-			}
-		}
-
-		std::copy(shs_temp.data(), shs_temp.data() + 48, aim_feature_shs[i].shs);
-	}
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(aim_feature_cuda, aim_feature_shs.data(), sizeof(SHs<3>) * sps.sample_points.size(), cudaMemcpyHostToDevice));
-
-}
-			// sibr::quatFromMatrix
-			// Problems with this built-in function!! x, y, z should be -x, -y, -z
-			// this function assumes that the matrix is Column-major!
-
-
-void sibr::GaussianView::LogMovedGaussiansAndSamples(){
-	int moved_gs_num = 0;
-	int moved_sp_num = 0;
-
-	for (int i = 0; i < count; i++){
-		if (!static_gaussians[i]){
-			moved_gs_num += 1;
-		}
-	}
-
-	for (int i = 0; i < static_samples.size(); i++){
-		if (static_samples[i] == 0){
-			moved_sp_num += 1;
-		}
-	}
-
-}
 
 void sibr::GaussianView::RenderHelpers(const sibr::Viewport& viewport){
 
@@ -4096,164 +3276,8 @@ void sibr::GaussianView::RenderHelpers(const sibr::Viewport& viewport){
 			GraphShader.end();
 		}
 	}
-	if (flag_select_sp){
-		glClear(GL_DEPTH_BUFFER_BIT);
-		for (int i : covering_gs_idx) {
-			viewport.bind();
-			GraphShader.begin();
-			PVM.set(T);
-			getEllipse(i);
-			EllipseMesh->render(true, true, 2, true, false, false, true);
-			GraphShader.end();
-		}
-		viewport.bind();
-		GraphShader.begin();
-		PVM.set(T);
-		getSphere(global_sp_idx);
-		SphereMesh->render(true, true, 2, true, false, false, true);
-		GraphShader.end();
-	}
-	if (flag_show_mesh){
-		glClear(GL_DEPTH_BUFFER_BIT);
-		viewport.bind();
-		MeshShader.begin();
-		MVP.set(T);
-
-		glEnable(GL_MULTISAMPLE);
-		GLint maxSamples;
-		glGetIntegerv(GL_MAX_SAMPLES, &maxSamples);
-		glSampleCoverage(maxSamples, GL_TRUE);
-		
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureId);
-		Tex.set(0);
-
-		MeshGT->render();
-		MeshShader.end();
-
-		// glDisable(GL_MULTISAMPLE);
-	}
 }
 
-void sibr::GaussianView::getSelectedSampleInfo(){
-	if (global_sp_idx == -1) return;
-	_current_alpha = feature_opacity_vector[global_sp_idx] + 1e-4;
-
-	_current_r = min(1.0, max(0.0, (SH0*sample_feature_shs[global_sp_idx].shs[0]/_current_alpha + 0.5)));
-	_current_g = min(1.0, max(0.0, (SH0*sample_feature_shs[global_sp_idx].shs[1]/_current_alpha + 0.5)));
-	_current_b = min(1.0, max(0.0, (SH0*sample_feature_shs[global_sp_idx].shs[2]/_current_alpha + 0.5)));
-
-	int orig_sample_idx = global_sp_idx;
-
-	_aim_alpha = aim_opacity[orig_sample_idx] + 1e-4;
-	_aim_r = min(1.0, max(0.0, (SH0*aim_feature_shs[orig_sample_idx].shs[0]/_aim_alpha + 0.5)));
-	_aim_g = min(1.0, max(0.0, (SH0*aim_feature_shs[orig_sample_idx].shs[1]/_aim_alpha + 0.5)));
-	_aim_b = min(1.0, max(0.0, (SH0*aim_feature_shs[orig_sample_idx].shs[2]/_aim_alpha + 0.5)));
-}
-
-void sibr::GaussianView::getSphere(int i){
-	SphereMesh = std::shared_ptr<Mesh>(new Mesh(true));
-
-	std::vector<float> vertexBuffer;
-	std::vector<sibr::Vector3f> colorsBuffer;
-	std::vector<sibr::Vector2f> alphaBuffer;
-	std::vector<uint> indicesBuffer;
-
-	float alpha = feature_opacity_vector[i] + 1e-4;
-
-	float r = min(1.0, max(0.0, (SH0*sample_feature_shs[i].shs[0]/alpha + 0.5)));
-	float g = min(1.0, max(0.0, (SH0*sample_feature_shs[i].shs[1]/alpha + 0.5)));
-	float b = min(1.0, max(0.0, (SH0*sample_feature_shs[i].shs[2]/alpha + 0.5)));
-
-	for (int j = 0; j < v_sphere.size(); j++){
-		sibr::Vector3f xyz =  sibr::Vector3f(v_sphere[j].x*0.005, v_sphere[j].y*0.005, v_sphere[j].z*0.005);
-
-		vertexBuffer.push_back(xyz.x() + sample_positions[i].x());
-		vertexBuffer.push_back(xyz.y() + sample_positions[i].y());
-		vertexBuffer.push_back(xyz.z() + sample_positions[i].z());
-		
-		if (sphere_state != 2){
-			colorsBuffer.push_back(sibr::Vector3f(r, g, b));
-		}
-		else {
-			colorsBuffer.push_back(sibr::Vector3f(1.0f, 0.0f, 0.0f));
-		}
-
-		if (sphere_state != 1){
-			alphaBuffer.push_back(sibr::Vector2f(1.0, 1.0));
-		}
-		else {
-			alphaBuffer.push_back(sibr::Vector2f(min(1.0f, alpha), 1.0));
-		}
-	}
-	for (int j = 0; j < f_sphere.size(); j++){
-		indicesBuffer.push_back(f_sphere[j].v1 - 1);
-		indicesBuffer.push_back(f_sphere[j].v2 - 1);
-		indicesBuffer.push_back(f_sphere[j].v3 - 1);
-	}
-	SphereMesh->colors(colorsBuffer);
-	SphereMesh->vertices(vertexBuffer);
-	SphereMesh->triangles(indicesBuffer);
-	SphereMesh->texCoords(alphaBuffer);
-}
-
-void sibr::GaussianView::getEllipse(int gs_idx){
-	EllipseMesh = std::shared_ptr<Mesh>(new Mesh(true));
-
-	std::vector<float> vertexBuffer;
-	std::vector<sibr::Vector3f> colorsBuffer;
-	std::vector<sibr::Vector2f> alphaBuffer;
-	std::vector<uint> indicesBuffer;
-
-	Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-	Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-
-	if (flag_clip_containing){
-		Eigen::Matrix3f scale_inv;
-		scale_inv.setZero();
-		scale_inv.diagonal() = Eigen::Vector3f(1.0/(scale_vector[gs_idx].scale[0]+0.0f), 1.0/(scale_vector[gs_idx].scale[1]+0.0f), 1.0/(scale_vector[gs_idx].scale[2]+0.0f));
-		Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-		Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-		Eigen::Matrix3f sigma_inv = rotation * scale_inv * scale_inv * (rotation.transpose());
-		Pos sample2gs = sample_positions[global_sp_idx] - pos_vector[gs_idx];
-		float log_pdf = sample2gs.transpose() * sigma_inv * sample2gs; //potential error
-		float cur_pdf;
-		if (-0.5 *log_pdf < -30){
-			cur_pdf = 0.0;
-		}
-		else {
-			cur_pdf =  exp(-0.5 *log_pdf);
-		}
-		if (cur_pdf*opacity_vector[gs_idx] < CUTOFF_ALPHA) {return;}
-	}
-	
-	for (int i = 0; i < v_sphere.size(); i++){
-		sibr::Vector3f xyz =  sibr::Vector3f(v_sphere[i].x*scale_3d_clip[gs_idx].scale[0], v_sphere[i].y*scale_3d_clip[gs_idx].scale[1], v_sphere[i].z*scale_3d_clip[gs_idx].scale[2]);
-		xyz = rotation * xyz;
-
-		vertexBuffer.push_back(xyz.x() + pos_vector[gs_idx].x());
-		vertexBuffer.push_back(xyz.y() + pos_vector[gs_idx].y());
-		vertexBuffer.push_back(xyz.z() + pos_vector[gs_idx].z());
-
-		float r = min(1.0, max(0.0, (SH0*shs_vector[gs_idx].shs[0]/opacity_vector[gs_idx] + 0.5)));
-		float g = min(1.0, max(0.0, (SH0*shs_vector[gs_idx].shs[1]/opacity_vector[gs_idx] + 0.5)));
-		float b = min(1.0, max(0.0, (SH0*shs_vector[gs_idx].shs[2]/opacity_vector[gs_idx] + 0.5)));
-
-		colorsBuffer.push_back(sibr::Vector3f(r, g, b));
-		alphaBuffer.push_back(sibr::Vector2f(opacity_vector[gs_idx], 1.0));
-	}
-	for (int i = 0; i < f_sphere.size(); i++){
-		indicesBuffer.push_back(f_sphere[i].v1 - 1);
-		indicesBuffer.push_back(f_sphere[i].v2 - 1);
-		indicesBuffer.push_back(f_sphere[i].v3 - 1);
-	}
-	
-
-	EllipseMesh->colors(colorsBuffer);
-	EllipseMesh->vertices(vertexBuffer);
-	EllipseMesh->triangles(indicesBuffer);
-	EllipseMesh->texCoords(alphaBuffer);
-}
 
 void sibr::GaussianView::getGraphMesh(){
 	graphMesh = std::shared_ptr<Mesh>(new Mesh(true));
@@ -4429,13 +3453,6 @@ void sibr::GaussianView::getSamplesMesh(){
 				r0 += SH0*abs(aim_feature_shs[orig_sample_idx].shs[0]*aim_opacity[orig_sample_idx]- sample_feature_shs[i].shs[0]*feature_opacity_vector[i]);
 				r0 += SH0*abs(aim_feature_shs[orig_sample_idx].shs[1]*aim_opacity[orig_sample_idx]- sample_feature_shs[i].shs[1]*feature_opacity_vector[i]);
 				r0 += SH0*abs(aim_feature_shs[orig_sample_idx].shs[2]*aim_opacity[orig_sample_idx]- sample_feature_shs[i].shs[2]*feature_opacity_vector[i]);
-
-				// if (aim_opacity[orig_sample_idx] == 0.0f){
-				// 	r0 += feature_opacity_vector[i]*100.0f/16.0f;
-				// }
-				// if (feature_opacity_vector[i] == 0.0f){
-				// 	r0 += aim_opacity[orig_sample_idx]*100.0f/16.0f;
-				// }
 
 				if (r0 < _show_alpha_cutoff){continue;}
 
@@ -5168,319 +4185,6 @@ std::vector<SamplePoint> sibr::GaussianView::getGridSamples(){
 }
 
 
-std::vector<SamplePoint> sibr::GaussianView::getSamplesfromGs(){
-	x_step = (aabb_overall.xyz_max.x() - aabb_overall.xyz_min.x()) / num_samples_per_dim;
-	y_step = (aabb_overall.xyz_max.y() - aabb_overall.xyz_min.y()) / num_samples_per_dim;
-	z_step = (aabb_overall.xyz_max.z() - aabb_overall.xyz_min.z()) / num_samples_per_dim;
-
-	samples_state.resize(pow(NUM_SAMPLES_PER_DIM, 3));
-    std::fill(samples_state.begin(), samples_state.end(), -1);
-
-
-	auto start = std::chrono::steady_clock::now();
-    
-	#pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++) {
-		FastBuildSamplesPerGs(gs_idx);
-	}
-
-
-	auto end = std::chrono::steady_clock::now();
-	std::chrono::duration<double> elapsedSeconds = end - start;
-	std::cout << "FastBuildSamplesPerGs took " << elapsedSeconds.count() << " seconds." << std::endl;
-
-	std::vector<SamplePoint> current_sps;
-	int idx = 0;
-	
-	for (int i = 0; i < samples_state.size(); i++){
-		if (samples_state[i] < 0) {continue; }
-		int x_idx = i / pow(num_samples_per_dim, 2);
-		int y_idx = (i - x_idx * pow(num_samples_per_dim, 2)) / num_samples_per_dim;
-		int z_idx = i % num_samples_per_dim;
-
-		Pos sample(aabb_overall.xyz_min.x()+ x_idx*x_step, aabb_overall.xyz_min.y()+ y_idx*y_step, aabb_overall.xyz_min.z()+ z_idx*z_step);
-		sample_positions.push_back(sample);
-		backup_sample_positions.push_back(sample);
-		SamplePoint sp;
-		current_sps.push_back(sp);
-		samples_state[i] = idx;
-		idx += 1;
-	}
-
-	std::random_device rd;
-    std::mt19937 gen(rd());
-	std::normal_distribution<float> dist(0.0f, 1.0f);
-
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		Scale s_3d;
-		s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[0]+0.0f);
-		s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[1]+0.0f);
-		s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[2]+0.0f);
-		scale_3d_clip[gs_idx] = s_3d;
-
-		int max_variance_dim = 0;
-		float scale_max = s_3d.scale[0];
-		if (s_3d.scale[1] > scale_max){
-			scale_max = s_3d.scale[1];
-			max_variance_dim = 1;
-		}
-		if (s_3d.scale[2] > scale_max){
-			scale_max = s_3d.scale[2];
-			max_variance_dim = 2;
-		}
-		scale_3d_max[gs_idx] = scale_max;
-
-		if (additional_samples) {
-			if (scale_max > _additional_sample_threshold){
-				Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-				Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-
-				Pos sample_local_left(0.0f, 0.0f, 0.0f);
-				sample_local_left(max_variance_dim) = (0.6+0.3*dist(gen))*s_3d.scale[max_variance_dim];
-				sample_local_left = rotation * sample_local_left;
-				Pos sample_local_right = -sample_local_left;
-				sample_positions.push_back(pos_vector[gs_idx] + sample_local_left);
-				sample_positions.push_back(pos_vector[gs_idx] + sample_local_right);
-				SamplePoint sp1, sp2;
-				current_sps.push_back(sp1);
-				current_sps.push_back(sp2);
-			}
-		}
-	}
-	std::cout << "Get samples down" << std::endl;
-	return current_sps;
-}
-
-
-
-void sibr::GaussianView::FastBuildSamplesPerGs(unsigned int gs_idx){
-
-	Eigen::Matrix3f scale, scale_inv;
-	scale.setZero();
-	scale.diagonal() = Eigen::Vector3f(scale_vector[gs_idx].scale[0]+0.0f, scale_vector[gs_idx].scale[1]+0.0f, scale_vector[gs_idx].scale[2]+0.0f);
-	scale_inv.setZero();
-	scale_inv.diagonal() = Eigen::Vector3f(1.0/(scale_vector[gs_idx].scale[0]+0.0f), 1.0/(scale_vector[gs_idx].scale[1]+0.0f), 1.0/(scale_vector[gs_idx].scale[2]+0.0f));
-
-	Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-	Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-	Eigen::Matrix3f sigma = rotation * scale * (scale.transpose()) * (rotation.transpose());
-	Eigen::Matrix3f sigma_inv = rotation * scale_inv * scale_inv * (rotation.transpose());
-
-	int x_idx_min, y_idx_min, z_idx_min, x_idx_max, y_idx_max, z_idx_max;
-
-	Scale s_3d;
-	s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[0]+0.0f);
-	s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[1]+0.0f);
-	s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[2]+0.0f);
-
-	float scale_max = max(s_3d.scale[0], s_3d.scale[1]);
-	scale_max = max(scale_max, s_3d.scale[2]);
-	float half_length = scale_max * GS_HALF_LEN_SCALE;
-
-
-	x_idx_min = round(((pos_vector[gs_idx].x() - half_length) - aabb_overall.xyz_min.x()) / x_step) - 1;
-	y_idx_min = round(((pos_vector[gs_idx].y() - half_length) - aabb_overall.xyz_min.y()) / y_step) - 1;
-	z_idx_min = round(((pos_vector[gs_idx].z() - half_length) - aabb_overall.xyz_min.z()) / z_step) - 1;
-	x_idx_max = round(((pos_vector[gs_idx].x() + half_length) - aabb_overall.xyz_min.x()) / x_step) + 1;
-	y_idx_max = round(((pos_vector[gs_idx].y() + half_length) - aabb_overall.xyz_min.y()) / y_step) + 1;
-	z_idx_max = round(((pos_vector[gs_idx].z() + half_length) - aabb_overall.xyz_min.z()) / z_step) + 1;
-
-
-	for (int x_idx = max(0, x_idx_min); x_idx < min(num_samples_per_dim-1, x_idx_max); x_idx++){
-		for (int y_idx = max(0, y_idx_min); y_idx <  min(num_samples_per_dim-1, y_idx_max); y_idx++) {
-			for (int z_idx = max(0, z_idx_min); z_idx <  min(num_samples_per_dim-1, z_idx_max); z_idx++) {
-
-				Pos sample(aabb_overall.xyz_min.x()+ x_idx*x_step, aabb_overall.xyz_min.y()+ y_idx*y_step, aabb_overall.xyz_min.z()+ z_idx*z_step);
-				Pos sample2gs = sample - pos_vector[gs_idx];
-
-				if ((sample2gs.x()*sample2gs.x() + sample2gs.y()*sample2gs.y() + sample2gs.z()*sample2gs.z()) >  half_length*half_length){
-					continue;
-				}
-
-				if (DO_PDF_CLIP){
-					float log_pdf = sample2gs.transpose() * (sigma_inv) * sample2gs;
-					if (isnan(log_pdf) || isinf(log_pdf)) {continue;}
-					float cur_pdf;
-					if (-0.5 *log_pdf < -30){
-						cur_pdf = 0.0;
-					} else {
-						cur_pdf = exp(-0.5 *log_pdf); // here the error occurs
-					}
-					if (cur_pdf * opacity_vector[gs_idx] < CUTOFF_ALPHA){continue;}
-				}
-
-				samples_state[x_idx * pow(num_samples_per_dim, 2) + y_idx*num_samples_per_dim + z_idx] = 1;
-			}
-		}
-	}
-	
-	return;
-}
-
-
-void sibr::GaussianView::FastBuildSamplesNeighbourGs(){
-	gs_containing.clear();
-	gs_containing.resize(count);
-
-	sps.neighbourgs.clear();
-	sps.neighbourgs.resize(sps.sample_points.size());
-
-
-	#pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++) {
-
-		Eigen::Matrix3f scale, scale_inv;
-		scale.setZero();
-		scale.diagonal() = Eigen::Vector3f(scale_vector[gs_idx].scale[0]+0.0f, scale_vector[gs_idx].scale[1]+0.0f, scale_vector[gs_idx].scale[2]+0.0f);
-		scale_inv.setZero();
-		scale_inv.diagonal() = Eigen::Vector3f(1.0/(scale_vector[gs_idx].scale[0]+0.0f), 1.0/(scale_vector[gs_idx].scale[1]+0.0f), 1.0/(scale_vector[gs_idx].scale[2]+0.0f));
-
-		Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-		Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-		Eigen::Matrix3f sigma = rotation * scale * (scale.transpose()) * (rotation.transpose());
-		Eigen::Matrix3f sigma_inv = rotation * scale_inv * scale_inv * (rotation.transpose());
-
-		int x_idx_min, y_idx_min, z_idx_min, x_idx_max, y_idx_max, z_idx_max;
-
-		Scale s_3d;
-		s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[0]+0.0f);
-		s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[1]+0.0f);
-		s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[2]+0.0f);
-		scale_3d_clip[gs_idx] = s_3d;
-
-		float scale_max = max(s_3d.scale[0], s_3d.scale[1]);
-		scale_max = max(scale_max, s_3d.scale[2]);
-		float half_length = scale_max * GS_HALF_LEN_SCALE;
-		scale_3d_max[gs_idx] = scale_max;
-	}
-
-		// x_idx_min = round(((pos_vector[gs_idx].x() - half_length) - aabb_overall.xyz_min.x()) / x_step) - 1;
-		// y_idx_min = round(((pos_vector[gs_idx].y() - half_length) - aabb_overall.xyz_min.y()) / y_step) - 1;
-		// z_idx_min = round(((pos_vector[gs_idx].z() - half_length) - aabb_overall.xyz_min.z()) / z_step) - 1;
-		// x_idx_max = round(((pos_vector[gs_idx].x() + half_length) - aabb_overall.xyz_min.x()) / x_step) + 1;
-		// y_idx_max = round(((pos_vector[gs_idx].y() + half_length) - aabb_overall.xyz_min.y()) / y_step) + 1;
-		// z_idx_max = round(((pos_vector[gs_idx].z() + half_length) - aabb_overall.xyz_min.z()) / z_step) + 1;
-
-
-		// for (int x_idx = max(0, x_idx_min); x_idx < min(num_samples_per_dim-1, x_idx_max); x_idx++){
-		// 	for (int y_idx = max(0, y_idx_min); y_idx <  min(num_samples_per_dim-1, y_idx_max); y_idx++) {
-		// 		for (int z_idx = max(0, z_idx_min); z_idx <  min(num_samples_per_dim-1, z_idx_max); z_idx++) {
-
-		// 			Pos sample(aabb_overall.xyz_min.x()+ x_idx*x_step, aabb_overall.xyz_min.y()+ y_idx*y_step, aabb_overall.xyz_min.z()+ z_idx*z_step);
-		// 			Pos sample2gs = sample - pos_vector[gs_idx];
-
-		// 			if ((sample2gs.x()*sample2gs.x() + sample2gs.y()*sample2gs.y() + sample2gs.z()*sample2gs.z()) >  half_length*half_length){
-		// 				continue;
-		// 			}
-
-		// 			if (DO_PDF_CLIP){
-		// 				float log_pdf = sample2gs.transpose() * (sigma_inv) * sample2gs;
-		// 				if (isnan(log_pdf) || isinf(log_pdf)) {continue;}
-		// 				float cur_pdf;
-		// 				if (-0.5 *log_pdf < -30){
-		// 					cur_pdf = 0.0;
-		// 				} else {
-		// 					cur_pdf = exp(-0.5 *log_pdf); 
-		// 				}
-		// 				if (cur_pdf * opacity_vector[gs_idx] < CUTOFF_ALPHA){continue;}
-		// 			}
-
-		// 			// std::cout << "sigma_inv" << sigma_inv << std::endl;
-
-		// 			gs_containing[gs_idx].push_back(samples_state[x_idx * pow(num_samples_per_dim, 2) + y_idx*num_samples_per_dim + z_idx]);
-		// 		}
-		// 	}
-		// }
-	// }
-
-	// long unsigned int containing_count = 0;
-	// for (int i = 0; i < count; i++) {
-	// 	for (int j = 0; j < gs_containing[i].size(); j++){
-	// 		sps.neighbourgs[gs_containing[i][j]].push_back(i);
-	// 		containing_count ++;
-	// 	}
-	// }
-
-	// int offset = 0;
-	// sps.neighbourgs_offsets.resize(sps.neighbourgs.size() + 1);
-	// for (int i = 0; i < sps.neighbourgs.size(); i++) {
-	// 	sps.neighbourgs_offsets[i] = offset;
-	// 	offset +=  sps.neighbourgs[i].size();
-	// }
-	// sps.neighbourgs_offsets[sps.neighbourgs.size()] = offset;
-	// // sps.total_neighbouring = offset;
-
-	// std::cout << "Total containing count: " << containing_count << std::endl;
-	// std::cout << "Total neighbouring count: " << sps.total_neighbouring << std::endl;
-	return;
-}
-
-void sibr::GaussianView::UpdateSamplesNeighbourGs(){ //slow!!!!!
-	// build kd tree for samples
-	auto start = std::chrono::steady_clock::now();
-	sibr::KdTree kdtree(sample_positions);
-	std::cout << "CPU sample count: " << sample_positions.size() << std::endl;
-	auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsedSeconds = end - start;
-    std::cout << "CPU Building kd tree took " << elapsedSeconds.count() << " seconds." << std::endl;
-	
-	// int max_covering = 0;
-	// int max_covering_idx = 0;
-	start = std::chrono::steady_clock::now();
-	#pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-	//int gs_idx = 98294;
-		std::vector<std::pair<size_t, float>> idDistSqs;
-		float scale_max = max(scale_3d_clip[gs_idx].scale[0], scale_3d_clip[gs_idx].scale[1]);
-		scale_max = max(scale_max, scale_3d_clip[gs_idx].scale[2]);
-		kdtree.getNeighbors(pos_vector[gs_idx], (double)pow(scale_max, 2.0), false, idDistSqs);
-		// if (idDistSqs.size() > max_covering){
-		// 	max_covering = idDistSqs.size();
-		// 	max_covering_idx = gs_idx;
-		// }
-	}
-	end = std::chrono::steady_clock::now();
-	elapsedSeconds = end - start;
-	std::cout << "CPU Query kd tree totally took " << elapsedSeconds.count() << " seconds." << std::endl;
-	// std::cout << "the 98294-th gaussian covers " << idDistSqs.size() << "samples" << std::endl;
-	// std::cout << "the " << max_covering_idx << "-th gaussian covers " << max_covering << "samples. and its scale is " << scale_3d_clip[max_covering_idx].scale[0] << " " << scale_3d_clip[max_covering_idx].scale[1] << " " << scale_3d_clip[max_covering_idx].scale[2] << std::endl;
-	
-}
-
-
-
-
-
-
-void sibr::GaussianView::PreprocessRelationshipsForGPU(){
-	auto start = std::chrono::steady_clock::now();
-	gs_idx_in_pair.resize(sps.total_neighbouring);
-	sp_idx_in_pair.resize(sps.total_neighbouring);
-
-    int index = 0;
-	int idx_itself = 0;
-    for (const auto& vec : sps.neighbourgs) {
-        for (int value : vec) {
-			sp_idx_in_pair[index] = idx_itself;
-            gs_idx_in_pair[index++] = value;
-        }
-		idx_itself += 1;
-    }
-	auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsedSeconds = end - start;
-    std::cout << "Flattening took " << elapsedSeconds.count() << " seconds." << std::endl;
-
-
-	start = std::chrono::steady_clock::now();
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(sample_pos_cuda, sample_positions.data(), sizeof(Pos) * sample_positions.size(), cudaMemcpyHostToDevice));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(sample_neighbours_cuda, gs_idx_in_pair.data(), sizeof(int) * sps.total_neighbouring, cudaMemcpyHostToDevice));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(sample_idx_itselves_cuda, sp_idx_in_pair.data(), sizeof(int) * sps.total_neighbouring, cudaMemcpyHostToDevice));
-	end = std::chrono::steady_clock::now();
-    elapsedSeconds = end - start;
-    std::cout << "Memcpy took " << elapsedSeconds.count() << " seconds." << std::endl;
-
-}
-
 void sibr::GaussianView::UpdateFeatures(){
 	CopyFeatureFromCPU2GPU();
 	CUDA_SAFE_CALL_ALWAYS(cudaMemset(grid_is_converged_cuda, 0, sizeof(bool) * valid_grid_num));
@@ -5519,7 +4223,7 @@ void sibr::GaussianView::UpdateFeatures(){
 	cudaDeviceSynchronize();
 	CUDA_SAFE_CALL_ALWAYS(cudaMemset(total_feature_loss, 0.0, sizeof(float)));
 	CUDA_SAFE_CALL_ALWAYS(cudaMemset(total_shape_loss, 0.0, sizeof(float)));
-	// FetchAimIdx();
+
 	CudaRasterizer::Rasterizer::L1loss3d(valid_grid_num, 3, 16, 
 										count, samples_count_per_grid,
 										aim_feature_cuda,
@@ -5645,37 +4349,6 @@ void sibr::GaussianView::JudgeEmptyGrid(){
 		}
 	}
 
-	// Padding second round
-	// for (int i = 0; i < valid_grid_num; i++){
-	// 	if (empty_grid[i] == 0){
-	// 		int idx = valid_grid_idx[i];
-	// 		int z_idx = idx % grid_num;
-	// 		int y_idx = (idx / grid_num) % grid_num;
-	// 		int x_idx = idx / (grid_num * grid_num);
-
-	// 		bad_grid[idx] = false;
-
-	// 		int left_idx = max(x_idx - 1, 0)*(grid_num * grid_num) + y_idx*grid_num + z_idx;
-	// 		bad_grid[left_idx] = false;
-	// 		int right_idx = min(x_idx + 1, grid_num-1)*(grid_num * grid_num) + y_idx*grid_num + z_idx;
-	// 		bad_grid[right_idx] = false;
-	// 		int down_idx = x_idx*(grid_num * grid_num) + max(y_idx - 1, 0)*grid_num + z_idx;
-	// 		bad_grid[down_idx] = false;
-	// 		int up_idx = x_idx*(grid_num * grid_num) + min(y_idx + 1, grid_num-1)*grid_num + z_idx;
-	// 		bad_grid[up_idx] = false;
-	// 		int back_idx = x_idx*(grid_num * grid_num) + y_idx*grid_num + max(z_idx - 1, 0);
-	// 		bad_grid[back_idx] = false;
-	// 		int front_idx = x_idx*(grid_num * grid_num) + y_idx*grid_num + min(z_idx + 1, grid_num-1);
-	// 		bad_grid[front_idx] = false;
-	// 	}
-	// }
-	// for (int i = 0; i < valid_grid_num; i++){
-	// 	int idx = valid_grid_idx[i];
-	// 	if (bad_grid[idx] == true){
-	// 		empty_grid[i] = 1;
-	// 	}
-	// }
-
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(empty_grid_cuda, empty_grid.data(), sizeof(int) * empty_grid.size(), cudaMemcpyHostToDevice));
 
 }
@@ -5719,101 +4392,9 @@ void sibr::GaussianView::ExpandOpRange(){
 		}
 	}
 
-	// Expand second round
-	// for (int i = 0; i < valid_grid_num; i++){
-	// 	if (!converged_grid[i]){
-	// 		int idx = valid_grid_idx[i];
-	// 		int z_idx = idx % grid_num;
-	// 		int y_idx = (idx / grid_num) % grid_num;
-	// 		int x_idx = idx / (grid_num * grid_num);
-
-	// 		bad_grid[idx] = false;
-
-	// 		int left_idx = max(x_idx - 1, 0)*(grid_num * grid_num) + y_idx*grid_num + z_idx;
-	// 		bad_grid[left_idx] = false;
-	// 		int right_idx = min(x_idx + 1, grid_num-1)*(grid_num * grid_num) + y_idx*grid_num + z_idx;
-	// 		bad_grid[right_idx] = false;
-	// 		int down_idx = x_idx*(grid_num * grid_num) + max(y_idx - 1, 0)*grid_num + z_idx;
-	// 		bad_grid[down_idx] = false;
-	// 		int up_idx = x_idx*(grid_num * grid_num) + min(y_idx + 1, grid_num-1)*grid_num + z_idx;
-	// 		bad_grid[up_idx] = false;
-	// 		int back_idx = x_idx*(grid_num * grid_num) + y_idx*grid_num + max(z_idx - 1, 0);
-	// 		bad_grid[back_idx] = false;
-	// 		int front_idx = x_idx*(grid_num * grid_num) + y_idx*grid_num + min(z_idx + 1, grid_num-1);
-	// 		bad_grid[front_idx] = false;
-	// 	}
-	// }
-	// for (int i = 0; i < valid_grid_num; i++){
-	// 	int idx = valid_grid_idx[i];
-	// 	if (bad_grid[idx] == false){
-	// 		converged_grid[i] = false;
-	// 	}
-	// }
-
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(grid_is_converged_cuda, converged_grid, sizeof(bool) * valid_grid_num, cudaMemcpyHostToDevice));
 }
 
-
-void sibr::GaussianView::GPUGetInitialSamplesFeature(){
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(pos_cuda, pos_backup_vector.data(), sizeof(Pos) * count, cudaMemcpyHostToDevice));
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(rot_cuda, rot_backup_vector.data(), sizeof(Rot) * count, cudaMemcpyHostToDevice));
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(shs_cuda, shs_backup_vector.data(), sizeof(SHs<3>) * count, cudaMemcpyHostToDevice));
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(sample_pos_cuda, sample_positions.data(), sizeof(Pos) * sample_positions.size(), cudaMemcpyHostToDevice));
-
-	opacity_orig_vector.resize(count);
-	scale_orig_vector.resize(count);
-	#pragma omp parallel for
-	for (int i = 0; i < count; i++) {
-		opacity_orig_vector[i] = inverse_sigmoid(opacity_backup_vector[i]);
-		scale_orig_vector[i].scale[0] = log(scale_backup_vector[i].scale[0]);
-		scale_orig_vector[i].scale[1] = log(scale_backup_vector[i].scale[1]);
-		scale_orig_vector[i].scale[2] = log(scale_backup_vector[i].scale[2]);
-	}
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(opacity_orig_cuda, opacity_orig_vector.data(), sizeof(float) * count, cudaMemcpyHostToDevice));
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(scale_orig_cuda, scale_orig_vector.data(), sizeof(Scale) * count, cudaMemcpyHostToDevice));
-
-
-	CudaRasterizer::Rasterizer::forward3d(sps.total_neighbouring, 3, 16, sps.sample_points.size(),count,
-										sample_pos_cuda,
-										paired_gs_idx,
-										paired_sp_idx,
-										pos_cuda,
-										rot_cuda,
-										scale_orig_cuda,
-										opacity_orig_cuda,
-										shs_cuda,
-										half_length_cuda,
-										sigma_cuda,
-										aim_feature_cuda,
-										aim_opacity_cuda);
-	cudaDeviceSynchronize();
-
-	aim_feature_shs.resize(sps.sample_points.size());
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(aim_feature_shs.data(), aim_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size(), cudaMemcpyDeviceToHost));
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(sample_feature_shs.data(), aim_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size(), cudaMemcpyDeviceToHost));
-
-
-	aim_opacity.resize(sps.sample_points.size());
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(aim_opacity.data(), aim_opacity_cuda, sizeof(float) * sps.sample_points.size(), cudaMemcpyDeviceToHost));
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(feature_opacity_vector.data(), aim_opacity_cuda, sizeof(float) * sps.sample_points.size(), cudaMemcpyDeviceToHost));
-
-	// set back to common situation
-	CopyFeatureFromCPU2GPU();
-}
-
-
-void sibr::GaussianView::FetchAimIdx(){
-	vector<int> aim_idx_vector(sps.sample_points.size());
-	#pragma omp parallel for
-	for (int i = 0; i < sps.sample_points.size(); i++){
-		aim_idx_vector[i] = sps.sample_points[samples_pos_payload_vector[i].payload].aim_index;
-	}
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(aim_index_cuda, aim_idx_vector.data(), sizeof(int) * sps.sample_points.size(), cudaMemcpyHostToDevice));
-}
 
 void sibr::GaussianView::GPUOptimize(){
 	auto start = std::chrono::steady_clock::now();
@@ -5850,7 +4431,7 @@ void sibr::GaussianView::GPUOptimize(){
 	cudaDeviceSynchronize();
 	CUDA_SAFE_CALL_ALWAYS(cudaMemset(total_feature_loss, 0.0, sizeof(float)));
 	CUDA_SAFE_CALL_ALWAYS(cudaMemset(total_shape_loss, 0.0, sizeof(float)));
-	// FetchAimIdx();
+
 	CudaRasterizer::Rasterizer::L1loss3d(valid_grid_num, 3, 16, 
 										count, samples_count_per_grid,
 										aim_feature_cuda,
@@ -5940,21 +4521,6 @@ void sibr::GaussianView::GPUOptimize(){
 	std::cout << "GPUOptimize took " << elapsedSeconds.count() << " seconds." << std::endl;
 }
 
-void sibr::GaussianView::SetTestAimFeatures(){
-	test_aim_shs.resize(count);
-	#pragma omp parallel for
-	for (int i = 0; i < count; i++){
-		test_aim_shs[i].shs[0] = 0.5;
-		test_aim_shs[i].shs[1] = -0.5;
-		test_aim_shs[i].shs[2] = -0.5;
-		for (int j = 3; j < 48; j++){
-			test_aim_shs[i].shs[j] = 0.0;
-			shs_vector[i].shs[j] = 0.0;
-		}
-	}
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(shs_cuda, test_aim_shs.data(), sizeof(SHs<3>) * count, cudaMemcpyHostToDevice));
-
-}
 
 void sibr::GaussianView::CopyFeatureFromCPU2GPU(){
 	auto start_copy = std::chrono::steady_clock::now();
@@ -6084,47 +4650,6 @@ void sibr::GaussianView::RefreshAdam(){
 	CUDA_SAFE_CALL_ALWAYS(cudaMemset(v_scale_cuda, 0.0, sizeof(Scale) * count));
 	CUDA_SAFE_CALL_ALWAYS(cudaMemset(step, 0, sizeof(int)));
 	cur_step = 0;
-}
-
-
-
-void sibr::GaussianView::StoreAllStates(std::string state_name){
-	std::filesystem::path folderPath = "stored_states/"+state_name+"/"; 
-    if (!std::filesystem::exists(folderPath)) {
-        if (std::filesystem::create_directory(folderPath)) {
-            std::cout << "文件夹创建成功！" << std::endl;
-        } else {
-            std::cout << "文件夹创建失败！" << std::endl;
-        }
-    } else {
-        std::cout << "文件夹已经存在！" << std::endl;
-    }
-
-	storeVectorToFile(gs_idx_in_pair,std::string("stored_states/"+state_name+"/") + "gs_idx_in_pair.txt");
-	storeVectorToFile(sp_idx_in_pair,std::string("stored_states/"+state_name+"/") + "sp_idx_in_pair.txt");
-
-	saveEigenVectorToTxt(sample_positions, "stored_states/"+state_name+"/" + state_name + "_sample_pos.txt");
-	saveEigenVectorToTxt(pos_vector, "stored_states/"+state_name+"/" + state_name + "_gassian_pos.txt");
-	saveVectorToFile(rot_vector, "stored_states/"+state_name+"/" + state_name + "_gassian_rot.txt");
-	saveVectorToFile(scale_vector, "stored_states/"+state_name+"/" + state_name + "_gassian_scale.txt");
-
-	saveEigenMatrixVectorToFile(sigma_vector, "stored_states/"+state_name+"/" + state_name + "_sigma_inverse.txt");
-	saveVectorToFile(shs_vector, "stored_states/"+state_name+"/" + state_name + "_shs.txt");
-	saveVectorToFile(opacity_vector, "stored_states/"+state_name+"/" + state_name + "_gassian_opacity.txt");
-
-	saveVectorToFile(sample_feature_shs, "stored_states/"+state_name+"/" + state_name + "_feature_shs.txt");
-	if (loss_vector.size() > 0){
-		saveVectorToFile(loss_vector, "stored_states/"+state_name+"/" + state_name + "_loss.txt");
-	}
-}
-
-
-
-
-void sibr::GaussianView::SetupSamples(){
-	std::vector<SamplePoint> current_sps;
-	current_sps.resize(pow(num_samples_per_dim, 3) + count*2);
-	sample_positions_new.resize(pow(num_samples_per_dim, 3) + count*2);
 }
 
 
@@ -6261,92 +4786,6 @@ void sibr::GaussianView::GetAdaLpfRatio(){
 	return;
 }
 
-void sibr::GaussianView::GetAdaLpfRatio_old(){
-	// int samples_per_grid = pow(samples_per_grid_dim, 3);
-
-	// #pragma omp parallel for
-	// for (int i = 0; i < valid_grid_num; i++){
-	// 	int grid_idx = valid_grid_idx[i];
-
-	// 	// init, left(z), top(y), forward(x) -> 0, 3, 12, 48
-	// 	Pos init = sample_positions[i*samples_per_grid];
-	// 	Pos left = sample_positions[i*samples_per_grid + samples_per_grid_dim - 1];
-	// 	Pos top = sample_positions[i*samples_per_grid + (samples_per_grid_dim - 1)*samples_per_grid_dim];
-	// 	Pos forward = sample_positions[i*samples_per_grid + (samples_per_grid_dim - 1)*samples_per_grid_dim*samples_per_grid_dim];
-
-	// 	Matrix3f df_grid, R0;
-	// 	R0.diagonal() = Pos(1.0f, 1.0f, 1.0f);
-	// 	df_grid.row(0) = (forward - init) * ((float)samples_per_grid_dim/((float)samples_per_grid_dim -1.0f));
-	// 	df_grid.row(1) = (top - init) * ((float)samples_per_grid_dim/((float)samples_per_grid_dim -1.0f));
-	// 	df_grid.row(2) = (left - init) * ((float)samples_per_grid_dim/((float)samples_per_grid_dim -1.0f));
-
-	// 	Eigen::Matrix3f df_grid_o = getOthogonalMatrix(df_grid);
-
-	// 	Eigen::Vector3f K;
-	// 	FastgetK(df_grid, df_grid_o, K, df_grid_o.transpose().eval());
-
-	// 	float tx, ty, tz; 
-	// 	tx = 0.0f; ty = 0.0f; tz = 0.0f;
-	// 	for (int i = 0; i < 3; i++) {
-	// 		tx += pow(K(i)*(R0.row(0).dot(df_grid_o.row(i).normalized())), 2.0f);
-	// 		ty += pow(K(i)*(R0.row(1).dot(df_grid_o.row(i).normalized())), 2.0f);
-	// 		tz += pow(K(i)*(R0.row(2).dot(df_grid_o.row(i).normalized())), 2.0f);
-	// 	}
-	// 	tx = sqrt(tx);
-	// 	ty = sqrt(ty);
-	// 	tz = sqrt(tz);
-
-	// 	ada_lpf_vector[grid_idx] = Pos(pow((tx/init_grid_step), 2.0f), pow((ty/init_grid_step), 2.0f), pow((tz/init_grid_step), 2.0f));
-	// }
-
-
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(ada_lpf_ratio, ada_lpf_vector.data(), sizeof(Eigen::Vector3f)*grid_count, cudaMemcpyHostToDevice));
-
-
-	// return;
-}
-
-
-
-
-
-void sibr::GaussianView::SetupPerGsSamples(std::vector<SamplePoint>& current_sps){
-	int offest = pow(num_samples_per_dim, 3);
-	#pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		Scale s_3d;
-		s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[0]+0.0f);
-		s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[1]+0.0f);
-		s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_vector[gs_idx])) * (scale_vector[gs_idx].scale[2]+0.0f);
-		scale_3d_clip[gs_idx] = s_3d;
-
-		int max_variance_dim = 0;
-		float scale_max = s_3d.scale[0];
-		if (s_3d.scale[1] > scale_max){
-			scale_max = s_3d.scale[1];
-			max_variance_dim = 1;
-		}
-		if (s_3d.scale[2] > scale_max){
-			scale_max = s_3d.scale[2];
-			max_variance_dim = 2;
-		}
-		scale_3d_max[gs_idx] = scale_max;
-
-		Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-		Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-
-		Pos sample_local_left(0.0f, 0.0f, 0.0f);
-		sample_local_left(max_variance_dim) = 0.5*s_3d.scale[max_variance_dim];
-		sample_local_left = rotation * sample_local_left;
-		Pos sample_local_right = -sample_local_left;
-		sample_positions_new[offest + gs_idx * 2] = pos_vector[gs_idx] + sample_local_left;
-		sample_positions_new[offest + gs_idx * 2 + 1] = pos_vector[gs_idx] + sample_local_right;
-	}
-
-}
-
-
-
 
 void sibr::GaussianView::TakeSnapshot(){
 	Snapshot s;
@@ -6404,29 +4843,18 @@ void sibr::GaussianView::LoadSnapshot(int idx){
 	block_num = s.block_num;
 	blocks_type = s.blocks_type;
 	
-	// cuda side resize samples
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(aim_index_cuda));
 	CUDA_SAFE_CALL_ALWAYS(cudaFree(sample_pos_cuda));
 	CUDA_SAFE_CALL_ALWAYS(cudaFree(cur_feature_cuda));
 	CUDA_SAFE_CALL_ALWAYS(cudaFree(feature_grad_cuda));
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(aim_feature_cuda));
 	CUDA_SAFE_CALL_ALWAYS(cudaFree(cur_opacity_cuda));
 
-	// CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&aim_index_cuda, sizeof(int) * sps.sample_points.size()));
 	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&sample_pos_cuda, sizeof(Pos) * sps.sample_points.size()));
 	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&cur_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size()));
 	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&feature_grad_cuda, sizeof(SHs<3>) * sps.sample_points.size()));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&aim_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size()));
 	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&cur_opacity_cuda, sizeof(float) * sps.sample_points.size()));
 
-	// CUDA_SAFE_CALL_ALWAYS(cudaFree(samples_pos_payload_gpu));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&samples_pos_payload_gpu, sizeof(PointPlusPayload)*sps.sample_points.size()));
-
-
-	// // std::cout << "here finish query kdtree" << std::endl;
 	UpdateIndicies(deform_graph);
 	UpdateFeatures();
-	getSelectedSampleInfo();
 }
 
 
@@ -6440,7 +4868,6 @@ void sibr::GaussianView::RebuildGraph(){
 	block_num = 0;
 
 	std::vector<int> node_index;
-	// node_index = sample_control_points(pos_vector, node_num, threshold_d, _surface_graph, is_surface_vector);
 	node_index = farthest_control_points_sampling(cand_points, node_num, _surface_graph);
 
 	std::vector<Node> nodes;
@@ -6543,72 +4970,7 @@ void sibr::GaussianView::RecordDeformation(){
 	return;
 }
 
-void sibr::GaussianView::LoadComparePly(){
-	if (has_soup){
-		std::vector<Pos> pos;
-		std::vector<Rot> rot;
-		std::vector<Scale> scale;
-		std::vector<float> opacity;
-		std::vector<SHs<3>> shs;
-		std::vector<int> index_;
-		int P;
-		P = loadPly<3>(compare_ply_path.c_str(), pos, shs, opacity, scale, rot, _scenemin, _scenemax, index_);
 
-
-		std::vector<Pos> pos_c(pos);
-		std::vector<Rot> rot_c(rot);
-		std::vector<Scale> scale_c(scale);
-		std::vector<float> opacity_c(opacity);
-		std::vector<SHs<3>> shs_c(shs);
-
-		#pragma omp parallel for
-		for (int i = 0; i < P; i++){
-			for (int j = 0; j < P; j++){
-				if (index_[i] == indicies[j]){
-					pos[j] = pos_c[i];
-					rot[j] = rot_c[i];
-					scale[j] = scale_c[i];
-					opacity[j] = opacity_c[i];
-					shs[j] = shs_c[i];
-				}
-			}
-		}
-
-		int same_count = 0;
-		for (int i = 0; i < P; i++){
-			if (abs(opacity_vector[new_gs_idx[i]] - opacity[i]) <= 0.01){
-				same_count += 1;
-			}
-		}
-		
-		std::cout << "Same count: " << same_count << std::endl;
-		for (int i = 0; i < P; i++){
-			pos_vector[new_gs_idx[i]] = pos[i];
-			rot_vector[new_gs_idx[i]] = rot[i];
-			scale_vector[new_gs_idx[i]] = scale[i];
-			opacity_vector[new_gs_idx[i]] = opacity[i];
-			shs_vector[new_gs_idx[i]] = shs[i];
-		}
-
-		// for (int i = 0; i < P; i++){
-		// 	pos_vector[i] = pos[new_gs_idx[i]];
-		// 	rot_vector[i] = rot[new_gs_idx[i]];
-		// 	scale_vector[i] = scale[new_gs_idx[i]];
-		// 	opacity_vector[i] = opacity[new_gs_idx[i]];
-		// 	shs_vector[i] = shs[new_gs_idx[i]];
-		// }
-
-
-		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(pos_cuda, pos_vector.data(), sizeof(Pos) * P, cudaMemcpyHostToDevice));
-		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(rot_cuda, rot_vector.data(), sizeof(Rot) * P, cudaMemcpyHostToDevice));
-		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(shs_cuda, shs_vector.data(), sizeof(SHs<3>) * P, cudaMemcpyHostToDevice));
-		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(opacity_cuda, opacity_vector.data(), sizeof(float) * P, cudaMemcpyHostToDevice));
-		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(scale_cuda, scale_vector.data(), sizeof(Scale) * P, cudaMemcpyHostToDevice));
-
-		UpdateFeatures();
-	}
-	
-}
 
 void sibr::GaussianView::LoadMeshForGraph(){
 	simplified_points.clear();
@@ -6910,72 +5272,6 @@ void sibr::GaussianView::CleanDeformHistory(){
 };
 
 
-void sibr::GaussianView::GlobalRotation(int axis){
-
-	float cos_t = cos(Pi*degrees/180.0f);
-	float sin_t = sin(Pi*degrees/180.0f);
-
-	Eigen::Matrix3f rot;
-	if (axis == 1){
-		rot << cos_t , 0.0 , sin_t,
-			0.0, 1.0, 0.0,
-			-sin_t , 0.0 , cos_t;
-	}
-	if (axis == 0){
-		rot << 1.0 , 0.0 , 0,
-			0.0, cos_t, -sin_t,
-			0.0 , sin_t , cos_t;
-	}
-	if (axis == 2){
-		rot <<cos_t , -sin_t , 0.0,
-			sin_t, cos_t, 0.0,
-			0.0 , 0.0 , 1.0;
-	}
-
-	#pragma omp parallel for
-	for (unsigned int i = 0; i < count; i++){
-		Pos proj_axis(0.0, 0.0, 0.0);
-		proj_axis(axis)  = pos_vector[i](axis);
-
-		pos_vector[i] = rot*(pos_vector[i]-proj_axis) + proj_axis;
-
-		if (_deform_options[1]){
-			Eigen::Quaternionf q = sibr::quatFromMatrix(rot);
-			q.x() = -q.x(); q.y() = -q.y(); q.z() = -q.z();
-			q.normalize();
-			Rot o_rot = rot_vector[i];
-			Eigen::Quaternionf origin_q(o_rot.rot[0], o_rot.rot[1], o_rot.rot[2], o_rot.rot[3]);
-
-			origin_q = q * origin_q;
-			o_rot = {origin_q.w(), origin_q.x(), origin_q.y(), origin_q.z()};
-			rot_vector[i] = o_rot;
-		}
-
-		if (_deform_options[3]) {
-			std::vector<float> shs_temp(shs_vector[i].shs, shs_vector[i].shs + 48);
-			for (int i = 0; i < 16; i++){
-				if (i % 2 == 1){
-					shs_temp[i*3] = -shs_temp[i*3];
-					shs_temp[i*3 + 1] = -shs_temp[i*3 + 1];
-					shs_temp[i*3 + 2] = -shs_temp[i*3 + 2];
-				}
-			}
-
-			SH_Rotation(rot, shs_temp);
-
-			for (int i = 0; i < 16; i++){
-				if (i % 2 == 1){
-					shs_temp[i*3] = -shs_temp[i*3];
-					shs_temp[i*3 + 1] = -shs_temp[i*3 + 1];
-					shs_temp[i*3 + 2] = -shs_temp[i*3 + 2];
-				}
-			}
-			std::copy(shs_temp.data(), shs_temp.data() + 48, shs_vector[i].shs);
-		}
-
-	}
-	return;
-};
 
 void sibr::GaussianView::ReloadAimPositions(){
 	aim_positions.clear();
