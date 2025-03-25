@@ -16,6 +16,9 @@ This is an implementation of the paper *ARAP-Deformation-of-Gaussian-Radiance-Fi
    ```
 3. Build the project using CMake:
    ```bash
+   # Dependencies
+   sudo apt install -y libglew-dev libassimp-dev libboost-all-dev libgtk-3-dev libopencv-dev libglfw3-dev libavdevice-dev libavcodec-dev libeigen3-dev libxxf86vm-dev libembree-dev
+   # build
    cmake -Bbuild . -DCMAKE_BUILD_TYPE=Release
    cmake --build build -j24 --target install
    ```
@@ -55,6 +58,23 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 ```
 
 ### File Descriptions
+*point_cloud.ply*, *cfg_args*, and *transforms_train.json* 
+
+
+```bash
+---point_cloud_config.txt
+
+```
+
+```bash
+---graph.obj
+
+```
+
+```bash
+---deform.txt
+
+```
 
 ### Creating Your Own Data
 
@@ -62,10 +82,39 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 ## Interactive ARAP Deformation Usage
 
 ### Launching the Interactive System
+   ```bash
+   ./install/bin/SIBR_gaussianViewer_app -m path_to_your_dataset
+   ```
 
-### Visualization and Key Controls
+### Mouse & Keyboard Controls
 
-### Performing ARAP Deformation
+#### Basic Operations
+| Key | Function |
+|-----|----------|
+| W | Move forward |
+| A | Move left |
+| S | Move backward |
+| D | Move right |
+| Space | Jump |
+| Shift | Sprint |
+| Esc | Exit / Cancel |
+
+
+#### Mouse + Keyboard Combinations
+| Keys | Function |
+|------|----------|
+| Alt + Right Click + Drag | Rotate around a point |
+| Shift + Right Click + Drag | Fine-tune rotation |
+| Ctrl + Middle Click + Drag | Precise panning |
+
+
+
+
+### Example: Performing ARAP Deformation
+
+#### Stage I Geometrical Deformation of Gaussians
+
+#### Stage II Align 3DGS with Radiance Field
 
 ### Saving and Reproducing the Deformation Process
 
