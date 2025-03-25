@@ -80,44 +80,6 @@ public:
         setupEdges();
     }
 
-    // void RebuildGraph(vector<Node> input_nodes){
-    //     nodes.clear();
-    //     back_up_nodes.clear();
-    //     free_indices.clear();
-    //     static_indices.clear();
-    //     control_indices.clear();
-    //     indices_blocks.clear();
-    //     block_centers.clear();
-    //     current_control_idx = 0;
-
-    //     rot.clear();           
-    //     trans.clear();
-    //     history_rot.clear();
-    //     history_trans.clear();
-    //     history_node_positions.clear();
-
-    //     this->nodes = input_nodes;
-
-    //     for (unsigned int i = 0; i < input_nodes.size(); i++){
-    //         this->nodes[i].Color = Pos(0.6f, 0.0f, 0.0f);
-    //         free_indices.insert(i);
-    //     }
-
-    //     vector<Node> back_up(this->nodes);
-    //     this->back_up_nodes = back_up;
-
-    //     for (int j = 0; j < input_nodes.size(); j++){
-    //         array<double, 9> rotation;
-    //         array<double, 3> translation;
-    //         for(int i=0; i<9; i++) rotation[i] = 0.0;
-    //         rotation[0] = 1.0; rotation[4] = 1.0; rotation[8] = 1.0;
-    //         for(int i=0; i<3; i++) translation[i] = 0.0;
-    //         rot.push_back(rotation);
-    //         trans.push_back(translation);
-	//     }
-
-    //     setupEdges();
-    // }
 
     void setupEdges(){
         for (unsigned int i = 0; i < nodes.size(); i++){
@@ -186,13 +148,6 @@ public:
             }
             index += 1;
         }
-        // history_rot.push_back(rot);
-        // history_trans.push_back(trans);
-        // vector<Pos> node_pos;
-        // for (int i = 0 ; i < nodes.size() ; i++) {
-        //     node_pos.push_back(nodes[i].Position);
-        // }
-        // history_node_positions.push_back(node_pos);
     }
 
     void findNearestNodes(const Pos pos, unsigned int k, array<unsigned int, KNN_MAX+1>& idx)const {
@@ -257,9 +212,7 @@ public:
 
         Pos temp;
         Pos output(0.0, 0.0, 0.0);
-        Pos position;
-
-        //cout <<  v.Neighbor_Weights[0] << " " <<  v.Neighbor_Weights[1] << " " <<  v.Neighbor_Weights[2] << endl;    
+        Pos position; 
 
         for(int j=0; j<k_nearest; j++) {
             position = nodes[v.Neighbor_Nodes[j]].Position;
@@ -478,10 +431,8 @@ public:
             
             
             GetControlNums();
-            // when constraints on center, only conserve 20 control points for efficiency
             if (_constraints_on_center) {
                 SelectKeyControls();
-                // SelectCenterControl();
             }
 
             if (_constraints_on_center) {
@@ -511,7 +462,6 @@ public:
     void FastCalcJacobiMat(SpMat& jacobi, SpMat& jacobiT);
     void CalcEnergyFunc(Vector1d& fx, Vector1d& x);
     void SelectKeyControls();
-    void SelectCenterControl();
     void GetControlNums();
     bool BelongsToSameBlock(unsigned int node_idx1, unsigned int node_idx2);
 

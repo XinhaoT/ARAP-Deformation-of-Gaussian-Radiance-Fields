@@ -74,31 +74,10 @@ void Deform::SelectKeyControls()
 	return;
 }
 
-void Deform::SelectCenterControl()
-{
-	// center_control_indices.clear();
-	// float min_dist = 10000.0f; // a fake infinity
-	// int fake_center_idx = -1;
-	// for (int node_idx_i : (*control_indices))
-	// {
-	// 	unsigned int i = (*nodes)[node_idx_i].Vertex_index;
-	// 	float d = pts_distance((*pos_vector)[i], aim_center);
-	// 	if (d < min_dist)
-	// 	{
-	// 		min_dist = d;
-	// 		fake_center_idx = i;
-	// 	}
-	// }
-	// center_control_indices.insert(fake_center_idx);
-	// aim_center = aim_positions[fake_center_idx];
-	// return;
-}
-
 void Deform::real_time_deform()
 {
 	setIdentityRots();
 	double energy = optimize();
-	// std::cout << "Energy: " << energy << std::endl;
 }
 
 void Deform::setIdentityRots()
@@ -134,13 +113,12 @@ double Deform::optimize()
 		{
 			std::cout << "exceed number of maximum iterations" << std::endl;
 		}
-		// std::cout << "Eigen Threads: " << Eigen::nbThreads() << std::endl;
+
 		auto start = std::chrono::steady_clock::now();
 		FastCalcJacobiMat(m_jacobi, m_jacobiT);
-		// std::cout << "Successfully Calculate JacobiMat" << std::endl;
+
 		JacTJac = m_jacobiT * m_jacobi;
 		CalcEnergyFunc(fx, m_x);
-		// std::cout << "Successfully Calculate EnergyFunc" << std::endl;
 		g = m_jacobiT * (-fx);
 		auto end = std::chrono::steady_clock::now();
 		std::chrono::duration<double> elapsedSeconds = end - start;
@@ -196,7 +174,6 @@ void Deform::DefineJacobiStructure(SpMat &jacobi, SpMat &jacobiT)
 	{
 		jacobi.resize(jacobi_m, jacobi_n);
 		jacobiT.resize(jacobi_n, jacobi_m);
-		// std::cout<<"Jacobi Matrix:"<<jacobi_m<<" "<<jacobi_n<<std::endl;
 	}
 }
 
@@ -341,7 +318,7 @@ std:
 
 					Pos vertex_k = (*nodes)[node_idx].Position;
 
-					int nid = std::distance((*free_indices).begin(), it); // maybe time consuming
+					int nid = std::distance((*free_indices).begin(), it); 
 					int k1 = nid * each_node_dim;
 					for (int k = 0; k < 3; k++)
 					{
@@ -392,10 +369,6 @@ std:
 			}
 		}
 	}
-
-	// std::cout << "jacobi_m: " << jacobi_m << std::endl;
-	// std::cout << "jacobi_n: " << jacobi_n << std::endl;
-	// std::cout << "index_final: " << index << std::endl;
 
 	jacobi.resize(jacobi_m, jacobi_n);
 	jacobi.setFromTriplets(trips.begin(), trips.end());

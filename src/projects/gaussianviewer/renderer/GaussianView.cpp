@@ -2588,9 +2588,6 @@ void sibr::GaussianView::onGUI()
 	ImGui::Checkbox("Only Optimize Deformed Region", &_optimize_options[11]);
 	ImGui::InputInt("Containing Relation Interval", &_containing_relation_interval, 1, 100);
 
-	if (ImGui::Button("set to random")) {
-		SetToRandom();
-	}
 
 
 	ImGui::InputInt("Optimize Step", &_optimize_steps, 1, 200);
@@ -2775,7 +2772,6 @@ void sibr::GaussianView::onGUI()
 		LoadDeformScript6();
 	}
 	if (ImGui::Button("Run Deform Script")){
-		// ResetAll();
 		RunDeformScript();
 	}
 
@@ -3403,14 +3399,6 @@ void sibr::GaussianView::UpdateAimPositionScale(int y){
 	}
 }
 
-void sibr::GaussianView::UpdateBlockCenter(){
-	// Pos center(0.0, 0.0, 0.0);
-	// for (unsigned int i : indices_blocks[deform_graph.current_control_idx]){
-	// 	center += cand_points[i];
-	// }
-	// center = center / indices_blocks[deform_graph.current_control_idx].size();
-	// deform_graph.block_centers[deform_graph.current_control_idx] = center;
-}
 
 void sibr::GaussianView::UpdatePosition(const DeformGraph &dm){
 	auto start = std::chrono::steady_clock::now();
@@ -3482,9 +3470,6 @@ void sibr::GaussianView::UpdatePosition(const DeformGraph &dm){
 
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsedSeconds = end - start;
-	if (_show_deform_efficiency){
-		std::cout << "--Update positions for mesh/soup/gaussian_ends took " << elapsedSeconds.count() << " seconds." << std::endl;
-	}
 
 }
 
@@ -3520,9 +3505,6 @@ void sibr::GaussianView::UpdatePositionforSamples(const DeformGraph &dm){
 
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsedSeconds = end - start;
-	if (_show_deform_efficiency){
-		std::cout << "--Update Samples' Positions took " << elapsedSeconds.count() << " seconds." << std::endl;
-	}
 }
 
 void sibr::GaussianView::HistoricalUpdatePositionforSamples(const DeformGraph &dm){
@@ -3913,9 +3895,6 @@ void sibr::GaussianView::UpdateAsSixPointsWithdrawBad(const DeformGraph &dm){
 
 	auto end = std::chrono::steady_clock::now();
 	std::chrono::duration<double> elapsedSeconds = end - start;
-	if (_show_deform_efficiency){
-		std::cout << "--Calculate Gaussians' Geometry&SHs took " << elapsedSeconds.count() << " seconds." << std::endl;
-	}
 
 	if (!_only_deform_gs){
 		FastUpdateSamplesSH(dm);
@@ -3923,11 +3902,6 @@ void sibr::GaussianView::UpdateAsSixPointsWithdrawBad(const DeformGraph &dm){
 	return;
 }
 
-		// if (! CheckRotation(q.toRotationMatrix(), dest_rot_o.transpose())){
-		// 	std::cout << "R: \n" << dest_rot_o.transpose() << std::endl;
-		// 	std::cout << "R from q: \n" << q.toRotationMatrix() << std::endl;
-		// 	std::cout << "q: \n" << q << "\n" << std::endl;
-		// }
 
 void sibr::GaussianView::UpdateAsSixPoints(const DeformGraph &dm){
 
@@ -4154,22 +4128,6 @@ void sibr::GaussianView::UpdateAsCov(const DeformGraph &dm){
 		q.normalize();
 		rot_vector[gs_idx] = {q.w(), q.x(), q.y(), q.z()};
 
-		// Update Scales
-		// for (int i = 0; i < 3; i++) {
-		// 	scale_vector[gs_idx].scale[i] = max(K(i), 1e-5f);
-		// }
-
-
-		if (gs_idx == 1000){
-			std::cout << "dest_rot: " << dest_rot << std::endl;
-			std::cout << "dest_rot_o: " << dest_rot_o << std::endl;
-			std::cout << "origin_q: " << origin_q << std::endl;
-			std::cout << "q: " << q << std::endl;
-			std::cout << "scale: " << scale_vector[gs_idx].scale[0] << " " << scale_vector[gs_idx].scale[1] << " " << scale_vector[gs_idx].scale[2] << std::endl;
-			std::cout << "K: " << K(0) << " " << K(1) << " " << K(2) << std::endl;
-			std::cout << "S: " << S << std::endl;
-		}
-
 
 		// Update SHs
 		Eigen::Matrix3f shs_rot = (q*(origin_q.inverse())).normalized().toRotationMatrix();
@@ -4209,8 +4167,6 @@ void sibr::GaussianView::UpdateSamplesSH(const DeformGraph &dm){
 	vector<Eigen::Matrix3f> othomat_vector(dm.nodes.size());
 	vector<Eigen::Matrix3f> affine_vector(dm.nodes.size());
 	vector<Eigen::Quaternionf> q_vector(dm.nodes.size());
-
-	auto start_rot = std::chrono::steady_clock::now();
 
 	#pragma omp parallel for
 	for (unsigned int i = 0; i < dm.nodes.size(); i++) {
@@ -4271,16 +4227,13 @@ void sibr::GaussianView::UpdateSamplesSH(const DeformGraph &dm){
 
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(aim_feature_cuda, aim_feature_shs.data(), sizeof(SHs<3>) * sps.sample_points.size(), cudaMemcpyHostToDevice));
 
-	auto end_rot = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsedSeconds_rot = end_rot - start_rot;
-	std::cout << "--Rotate the SH of Samples per step" << elapsedSeconds_rot.count() << " seconds." << std::endl;
+
+
 }
 
 
 void sibr::GaussianView::FastUpdateSamplesSH(const DeformGraph &dm){
 	vector<Eigen::Quaternionf> q_vector(dm.nodes.size());
-
-	auto start_rot = std::chrono::steady_clock::now();
 
 	#pragma omp parallel for
 	for (unsigned int i = 0; i < dm.nodes.size(); i++) {
@@ -4296,9 +4249,6 @@ void sibr::GaussianView::FastUpdateSamplesSH(const DeformGraph &dm){
 
 	RotateSamplesSHsCUDA(sample_positions.size(), sample_neighbor_weights, sample_neighbor_nodes, q_vector_cuda, aim_feature_cuda, dm.k_nearest, static_samples_cuda);
 
-	auto end_rot = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsedSeconds_rot = end_rot - start_rot;
-	std::cout << "--Fast Rotate the SH of Samples per step" << elapsedSeconds_rot.count() << " seconds." << std::endl;
 }
 
 /// @brief 
@@ -4321,17 +4271,13 @@ void sibr::GaussianView::UpdateRotationFast(const DeformGraph &dm){
 		affine_vector[i] = CastRot2Matrix(rotation);
 	}
 
-	auto start_op = std::chrono::steady_clock::now();
 
 	#pragma omp parallel for
 	for (unsigned int i = 0; i < count; i++){
 		Rot o_rot = rot_vector[i];
 
 		Eigen::Quaternionf weighted_q(1.0, 0.0, 0.0, 0.0);
-		// if (i == 0){
-		// 		std::cout << "initial quaternion: " << std::endl;
-		// 		std::cout << weighted_q << std::endl;
-		// }
+
 		Eigen::Quaternionf origin_q(o_rot.rot[0], o_rot.rot[1], o_rot.rot[2], o_rot.rot[3]);
 		Eigen::Matrix3f origin_mat = origin_q.normalized().toRotationMatrix();
 
@@ -4395,17 +4341,9 @@ void sibr::GaussianView::UpdateRotationFast(const DeformGraph &dm){
 
 	}
 
-	auto end_op = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsedSeconds_op = end_op - start_op;
-	std::cout << "Rotate/Scale/SHs process of the gs in deformation took" << elapsedSeconds_op.count() << " seconds." << std::endl;
-
-	// Rotate the SHs for samples, the bottleneck of the deformation part
-
-	start_op = std::chrono::steady_clock::now();
 
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(q_vector_cuda, q_vector.data(), sizeof(Eigen::Quaternionf) * q_vector.size(), cudaMemcpyHostToDevice));
 
-	// RotateSamplesSHsCUDA(sample_positions.size(), sample_neighbor_weights, sample_neighbor_nodes, q_vector_cuda, aim_feature_cuda, dm.k_nearest);
 
 	#pragma omp parallel for
 	for (unsigned int i = 0; i < sample_positions.size(); i++){
@@ -4450,11 +4388,6 @@ void sibr::GaussianView::UpdateRotationFast(const DeformGraph &dm){
 
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(aim_feature_cuda, aim_feature_shs.data(), sizeof(SHs<3>) * sps.sample_points.size(), cudaMemcpyHostToDevice));
 
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(aim_feature_shs.data(), aim_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size(), cudaMemcpyDeviceToHost));
-
-	end_op = std::chrono::steady_clock::now();
-    elapsedSeconds_op = end_op - start_op;
-	std::cout << "Rotate the SHs of samples took " << elapsedSeconds_op.count() << " seconds." << std::endl;
 }
 			// sibr::quatFromMatrix
 			// Problems with this built-in function!! x, y, z should be -x, -y, -z
@@ -4477,8 +4410,6 @@ void sibr::GaussianView::LogMovedGaussiansAndSamples(){
 		}
 	}
 
-	std::cout << "Moved Gaussians: " << moved_gs_num << std::endl;
-	std::cout << "Moved Samples: " << moved_sp_num << std::endl;
 }
 
 void sibr::GaussianView::RenderHelpers(const sibr::Viewport& viewport){
@@ -4489,7 +4420,6 @@ void sibr::GaussianView::RenderHelpers(const sibr::Viewport& viewport){
 		initMeshShader();
 	}
 
-	//std::cout << "flag_rect: " << flag_rect << std::endl;
 
 	if (flag_rect){
 		GLboolean blendState;
@@ -4524,18 +4454,6 @@ void sibr::GaussianView::RenderHelpers(const sibr::Viewport& viewport){
 		graphMesh->render_lines();
 		GraphShader.end();
 	}
-
-	// if(flag_show_centers) {
-	// 	if (block_num != 0) {
-	// 		glClear(GL_DEPTH_BUFFER_BIT);
-	// 		viewport.bind();
-	// 		GraphShader.begin();
-	// 		PVM.set(T);
-	// 		// std::cout << indices_blocks[i][j] << std::endl;
-	// 		centersMesh->render(true, true, 2, true, false, false, true);
-	// 		GraphShader.end();
-	// 	}
-	// }
 
 	if(flag_show_samples) {
 		glClear(GL_DEPTH_BUFFER_BIT);
@@ -4958,7 +4876,6 @@ void sibr::GaussianView::getQuadMesh(){
 	u = window_size(1) - min(press_y, lastY);
 	b = window_size(1) - max(press_y, lastY);
 
-	//std::cout << "l: " << l << " r: " << r << "u: "<< u << "b: " << b << endl;
 	float corners[4][2] = { {(l / window_size(0))*2 -1, (u / window_size(1))*2 -1},		\
 							 {(l / window_size(0))*2 -1, (b / window_size(1))*2 -1}, 	\
 							 {(r / window_size(0))*2 -1, (b / window_size(1))*2 -1}, 	\
@@ -5103,7 +5020,6 @@ void sibr::GaussianView::getOverallAABB(){
 
 
 void sibr::GaussianView::UpdateContainingRelationship(){
-	auto start_update = std::chrono::steady_clock::now();
 
 	getOverallAABB();
 
@@ -5112,7 +5028,6 @@ void sibr::GaussianView::UpdateContainingRelationship(){
 	z_step = (aabb_overall.xyz_max.z() - aabb_overall.xyz_min.z()) / grid_num;
 
 	grid_step = max(max(x_step, y_step), z_step);
-	// std::cout << "grid step: " << grid_step << std::endl;
 
 	min_xyz = {aabb_overall.xyz_min.x(), aabb_overall.xyz_min.y(), aabb_overall.xyz_min.z()};
 
@@ -5213,11 +5128,6 @@ void sibr::GaussianView::UpdateContainingRelationship(){
 	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&grided_gs_idx_cuda, grid_gs_prefix_sum_vector[grid_count-1]*sizeof(int)));
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(grided_gs_idx_cuda, grided_gs_idx.data(), grid_gs_prefix_sum_vector[grid_count-1]*sizeof(int), cudaMemcpyHostToDevice));
 
-
-
-	auto end_update = std::chrono::steady_clock::now();
-	std::chrono::duration<double> elapsedSeconds_update = end_update - start_update;
-	std::cout << "Update Containing Relationship took " << elapsedSeconds_update.count() << " seconds." << std::endl;
 }
 
 
@@ -6003,12 +5913,6 @@ void sibr::GaussianView::UpdateFeatures(){
 
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(&loss, total_feature_loss, sizeof(float), cudaMemcpyDeviceToHost));
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(&shape_loss, total_shape_loss, sizeof(float), cudaMemcpyDeviceToHost));
-	if (_optimize_options[6]){
-		std::cout << "per sample feature loss: " << loss / sample_positions.size() << std::endl;
-	}
-	if (_optimize_options[10]){
-		std::cout << "per sample shape loss: " << shape_loss / sample_positions.size() << std::endl;
-	}
 }
 
 void sibr::GaussianView::GPUSetupSamplesFeatures(){
@@ -6455,12 +6359,6 @@ void sibr::GaussianView::GPUOptimize(){
 										_optimize_steps,
 										moved_gaussians_cuda);
 	cudaDeviceSynchronize();
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(&loss, total_feature_loss, sizeof(float), cudaMemcpyDeviceToHost));
-	std::cout << "per sample feature loss: " << loss / sample_positions.size() << std::endl;
-	// loss_vector.push_back(loss);
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(&shape_loss, total_shape_loss, sizeof(float), cudaMemcpyDeviceToHost));
-	std::cout << "per sample shape loss: " << shape_loss / sample_positions.size() << std::endl;
-
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(&cur_step, step, sizeof(int), cudaMemcpyDeviceToHost));
 	std::cout << "step: " << cur_step << std::endl;
 
@@ -7913,34 +7811,7 @@ std::vector<SamplePoint> sibr::GaussianView::GetLocalSamplesUniformly(){
 }
 
 
-void sibr::GaussianView::SetToRandom(){
-	std::random_device rd;
-    std::mt19937 gen(rd());
-	std::normal_distribution<float> dist(0.0f, 1.0f);
 
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		pos_vector[gs_idx](0) += dist(gen)*0.01;
-		pos_vector[gs_idx](1) += dist(gen)*0.01;
-		pos_vector[gs_idx](2) += dist(gen)*0.01;
-
-		rot_vector[gs_idx].rot[0] = 1.0;
-		rot_vector[gs_idx].rot[1] = 0.0;
-		rot_vector[gs_idx].rot[2] = 0.0;
-		rot_vector[gs_idx].rot[3] = 0.0;
-
-		scale_vector[gs_idx].scale[0] = 0.01;
-		scale_vector[gs_idx].scale[1] = 0.01;
-		scale_vector[gs_idx].scale[2] = 0.01;
-
-		opacity_vector[gs_idx] = 0.5;
-
-		for (int i = 0; i < 48; i++){
-			shs_vector[gs_idx].shs[i] = dist(gen)*0.1;
-		}
-	}
-	UpdateFeatures();
-	return;
-}
 
 void sibr::GaussianView::UpdateCenterRadius(){
 	for(int i = 0; i < deform_graph.indices_blocks.size(); i++){
@@ -7956,528 +7827,6 @@ void sibr::GaussianView::UpdateCenterRadius(){
 	}
 	return;
 }
-
-
-
-
-
-
-
-
-
-void sibr::GaussianView::GPUCalculateGrad(){
-	// auto start = std::chrono::steady_clock::now();
-	// CudaRasterizer::Rasterizer::backward3d(sps.total_neighbouring, 3, 16, count,
-	// 									sample_pos_cuda,
-	// 									sample_neighbours_cuda,
-	// 									sample_idx_itselves_cuda,
-	// 									pos_cuda,
-	// 									rot_cuda,
-	// 									scale_cuda,
-	// 									opacity_orig_cuda,
-	// 									shs_cuda,
-	// 									half_length_cuda,
-	// 									sigma_cuda,
-	// 									feature_grad_cuda,
-	// 									dF_dopacity_cuda,
-	// 									dF_dshs_cuda);
-
-	// auto end = std::chrono::steady_clock::now();
-    // std::chrono::duration<double> elapsedSeconds = end - start;
-    // std::cout << "backward 3d took " << elapsedSeconds.count() << " seconds." << std::endl;
-
-	// dF_dopacity_vector.resize(count);
-	// dF_dshs_vector.resize(count);
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(dF_dopacity_vector.data(), dF_dopacity_cuda, sizeof(float) * count, cudaMemcpyDeviceToHost));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(dF_dshs_vector.data(), dF_dshs_cuda, sizeof(SHs<3>) * count, cudaMemcpyDeviceToHost));
-
-	// int correct_num = 0;
-	// int wrong_num = 0;
-	// int zero_num = 0;
-	// for (int i = 0; i <count; i++){
-	// 	float error_x = sample_grad_opacity[i] / dF_dopacity_vector[i];
-	// 	float error_y = sample_grad_shs[i].shs[1] / dF_dshs_vector[i].shs[1];
-	// 	float error_z = sample_grad_shs[i].shs[2] / dF_dshs_vector[i].shs[2];
-	// 	if (abs(sample_grad_opacity[i])  < 1e-6){
-	// 		zero_num ++;
-	// 	}
-	// 	else if ((error_x < 1.001) && (error_x  > 0.999)){
-	// 		correct_num ++;
-	// 	}
-	// 	else{
-	// 		wrong_num ++;
-	// 		std::cout << "cpu result: " << sample_grad_opacity[i] << "gpu result: " << dF_dopacity_vector[i] << std::endl;
-	// 	}
-	// }
-	// std::cout << "zero_num: " << zero_num << std::endl;
-	// std::cout << "correct_num: " << correct_num << std::endl;
-	// std::cout << "wrong_num: " << wrong_num << std::endl;
-
-}
-
-void sibr::GaussianView::CPUCalculateGrad(){
-	// sample_grad_shs.resize(count);
-	// sample_grad_opacity.resize(count);
-
-	// #pragma omp parallel for
-	// for (int gs_idx = 0; gs_idx < count; gs_idx++) {	
-	// 	sample_grad_shs[gs_idx].shs[0] = 0.0;
-	// 	sample_grad_shs[gs_idx].shs[1] = 0.0;
-	// 	sample_grad_shs[gs_idx].shs[2] = 0.0;
-	// 	sample_grad_opacity[gs_idx] = 0.0;
-	// }
-
-	// int* flattenedArray = new int[sps.total_neighbouring];
-	// int* flattenedItself = new int[sps.total_neighbouring];
-    // int index = 0;
-	// int idx_itself = 0;
-    // for (const auto& vec : sps.neighbourgs) {
-    //     for (int value : vec) {
-	// 		flattenedItself[index] = idx_itself;
-    //         flattenedArray[index++] = value;
-    //     }
-	// 	idx_itself += 1;
-    // }
-	
-		
-	// for (int i = 0; i < sps.total_neighbouring; i++) { 
-	// 	int sp_idx = flattenedItself[i];
-	// 	int gs_idx = flattenedArray[i];
-
-	// 	Pos sample2gs = sample_positions[sp_idx] - pos_vector[gs_idx];
-
-	// 	float log_pdf = sample2gs.transpose() * (sigma_vector[gs_idx]) * sample2gs;
-
-	// 	float cur_pdf;
-
-	// 	if (-0.5 *log_pdf < -30){
-	// 		cur_pdf = 0.0;
-	// 	}
-	// 	else {
-	// 		cur_pdf = exp(-0.5 *log_pdf); // here the error occurs
-	// 	}
-
-	// 	float sign_r = result_grad_sign[sp_idx].shs[0];
-	// 	float sign_g = result_grad_sign[sp_idx].shs[1];
-	// 	float sign_b = result_grad_sign[sp_idx].shs[2];
-
-	// 	float sigmoid_opa = 1.0f / (1.0f + exp(-opacity_orig_vector[gs_idx]));;
-	// 	float d_sigmoid_opa = (exp(-opacity_orig_vector[gs_idx])) / ((1.0f + exp(-opacity_orig_vector[gs_idx])) * (1.0f + exp(-opacity_orig_vector[gs_idx])));
-
-
-	// 	if ((cur_pdf * sigmoid_opa >= 0.01) && (cur_pdf * sigmoid_opa < 0.999)){
-	// 		sample_grad_opacity[gs_idx] += shs_vector[gs_idx].shs[0] * cur_pdf * sign_r * d_sigmoid_opa;
-	// 		sample_grad_opacity[gs_idx] += shs_vector[gs_idx].shs[1] * cur_pdf * sign_g * d_sigmoid_opa;
-	// 		sample_grad_opacity[gs_idx] += shs_vector[gs_idx].shs[2] * cur_pdf * sign_b * d_sigmoid_opa;
-
-	// 		sample_grad_shs[gs_idx].shs[0] += cur_pdf * sigmoid_opa * sign_r;
-	// 		sample_grad_shs[gs_idx].shs[1] += cur_pdf * sigmoid_opa * sign_g;
-	// 		sample_grad_shs[gs_idx].shs[2] += cur_pdf * sigmoid_opa * sign_b;
-	// 	}
-
-	// 	if ((cur_pdf * sigmoid_opa > 0.999)){
-	// 		sample_grad_shs[gs_idx].shs[0] += 0.999 * sign_r;
-	// 		sample_grad_shs[gs_idx].shs[1] += 0.999 * sign_g;
-	// 		sample_grad_shs[gs_idx].shs[2] += 0.999 * sign_b;
-	// 	}
-
-	// }
-	// delete[] flattenedArray;
-	// delete[] flattenedItself;
-
-	// std::cout << "here is " << std::endl;
-}
-
-void sibr::GaussianView::SetupSamplesFeatures(){
-
-	// opacity_orig_vector.resize(count);
-	// #pragma omp parallel for
-	// for (int i = 0; i < count; i++) {
-	// 	opacity_orig_vector[i] = inverse_sigmoid(opacity_vector[i]);
-	// }
-
-	// #pragma omp parallel for
-	// for (int sample_idx = 0; sample_idx < sps.sample_points.size(); sample_idx++) {	// i : sample_idx
-	// 	sample_feature_shs[sample_idx].shs[0] = 0.0;
-	// 	sample_feature_shs[sample_idx].shs[1] = 0.0;
-	// 	sample_feature_shs[sample_idx].shs[2] = 0.0;
-	// }
-
-	// int* flattenedArray = new int[sps.total_neighbouring];
-	// int* flattenedItself = new int[sps.total_neighbouring];
-    // int index = 0;
-	// int idx_itself = 0;
-    // for (const auto& vec : sps.neighbourgs) {
-    //     for (int value : vec) {
-	// 		flattenedItself[index] = idx_itself;
-    //         flattenedArray[index++] = value;
-    //     }
-	// 	idx_itself += 1;
-    // }
-		
-	// for (int i = 0; i < sps.total_neighbouring; i++) { 
-	// 	int sample_idx = flattenedItself[i];
-	// 	int gs_idx = flattenedArray[i];
-
-
-	// 	Pos sample2gs = sample_positions[sample_idx] - pos_vector[gs_idx];
-
-	// 	float log_pdf = sample2gs.transpose() * (sigma_vector[gs_idx]) * sample2gs;
-
-	// 	float cur_pdf;
-
-	// 	if (-0.5 *log_pdf < -30){
-	// 		cur_pdf = 0.0;
-	// 	}
-	// 	else {
-	// 		cur_pdf = exp(-0.5 *log_pdf);
-	// 	}
-
-	// 	float sigmoid_opa = 1.0f / (1.0f + exp(-opacity_orig_vector[gs_idx]));
-
-	// 	float non_transparent;
-	// 	if (cur_pdf * sigmoid_opa >= 0.999){
-	// 		non_transparent = 0.999;
-	// 	}
-	// 	else if (cur_pdf * sigmoid_opa < 0.01){
-	// 		non_transparent = 0.0;
-	// 	}
-	// 	else {
-	// 		non_transparent = cur_pdf * sigmoid_opa;
-	// 	}
-
-
-	// 	sample_feature_shs[sample_idx].shs[0] += shs_vector[gs_idx].shs[0] * non_transparent;
-	// 	sample_feature_shs[sample_idx].shs[1] += shs_vector[gs_idx].shs[1] * non_transparent;
-	// 	sample_feature_shs[sample_idx].shs[2] += shs_vector[gs_idx].shs[2] * non_transparent;
-
-	// }
-}
-
-// void sibr::GaussianView::SetupSamplesFeatures(){
-// 	// update the pdf //no need? just sum of pdf*opacity*shs
-
-// 	// if loop from gs, we can use atomic update to speed up
-// 	// update the feature
-
-// 	#pragma omp parallel for
-// 	for (int sample_idx = 0; sample_idx < sps.sample_points.size(); sample_idx++) {	// i : sample_idx
-// 		sample_feature_shs[sample_idx].shs[0] = 0.0;
-// 		sample_feature_shs[sample_idx].shs[1] = 0.0;
-// 		sample_feature_shs[sample_idx].shs[2] = 0.0;
-// 	}
-
-// 	int* flattenedArray = new int[sps.total_neighbouring];
-// 	int* flattenedItself = new int[sps.total_neighbouring];
-//     int index = 0;
-// 	int idx_itself = 0;
-//     for (const auto& vec : sps.neighbourgs) {
-//         for (int value : vec) {
-// 			flattenedItself[index] = idx_itself;
-//             flattenedArray[index++] = value;
-//         }
-// 		idx_itself += 1;
-//     }
-		
-// 	for (int i = 0; i < sps.total_neighbouring; i++) { 
-// 	//for (int i = 0; i < 10; i++) { 
-// 		int sp_idx = flattenedItself[i];
-// 		int gs_idx = flattenedArray[i];
-
-// 		Pos sample2gs = sample_positions[sp_idx] - pos_vector[gs_idx];
-
-// 		float log_pdf = sample2gs.transpose() * (sigma_vector[gs_idx]) * sample2gs;
-
-// 		if (std::isnan(exp(-0.5 *log_pdf)) || isinf(exp(-0.5 *log_pdf))){ 
-// 			continue;
-// 		}
-
-// 		float cur_pdf = exp(-0.5 *log_pdf);
-
-// 		if (std::isnan(cur_pdf) || std::isinf(cur_pdf)){ 
-// 			continue;
-// 		}
-
-// 		//std::cout << "log_pdf: " << log_pdf << std::endl;
-
-// 		sample_feature_shs[sp_idx].shs[0] += shs_vector[gs_idx].shs[0] * cur_pdf * opacity_vector[gs_idx];
-// 		sample_feature_shs[sp_idx].shs[1] += shs_vector[gs_idx].shs[1] * cur_pdf * opacity_vector[gs_idx];
-// 		sample_feature_shs[sp_idx].shs[2] += shs_vector[gs_idx].shs[2] * cur_pdf * opacity_vector[gs_idx];
-
-// 	}
-// 	delete[] flattenedArray;
-// 	delete[] flattenedItself;
-// }
-
-void sibr::GaussianView::FASTUpdateSamplesNeighbourGs(){
-	// gs_containing.clear();
-	// gs_containing.resize(count);
-
-	// sps.neighbourgs.clear();
-	// sps.neighbourgs.resize(sps.sample_points.size());
-
-	// #pragma omp parallel for
-	// for (int gs_idx = 0; gs_idx < count; gs_idx++){
-	// 	Eigen::Matrix3f scale;
-	// 	scale.setZero();
-
-	// 	scale.diagonal() = Eigen::Vector3f(scale_vector[gs_idx].scale[0], scale_vector[gs_idx].scale[1], scale_vector[gs_idx].scale[2]);
-
-	// 	Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-	// 	Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-	// 	Eigen::Matrix3f sigma = rotation * scale * (scale.transpose()) * (rotation.transpose());
-
-
-	// 	int x_idx_min, y_idx_min, z_idx_min, x_idx_max, y_idx_max, z_idx_max;
-
-	// 	float scale_max = max(scale_vector[gs_idx].scale[0], scale_vector[gs_idx].scale[1]);
-	// 	scale_max = max(scale_max, scale_vector[gs_idx].scale[2]);
-	// 	float half_length = scale_max * GS_HALF_LEN_SCALE;
-
-	// 	x_idx_min = round(((pos_vector[gs_idx].x() - half_length) - aabb_overall.xyz_min.x()) / x_step) - 1;
-	// 	y_idx_min = round(((pos_vector[gs_idx].y() - half_length) - aabb_overall.xyz_min.y()) / y_step) - 1;
-	// 	z_idx_min = round(((pos_vector[gs_idx].z() - half_length) - aabb_overall.xyz_min.z()) / z_step) - 1;
-	// 	x_idx_max = round(((pos_vector[gs_idx].x() + half_length) - aabb_overall.xyz_min.x()) / x_step) + 1;
-	// 	y_idx_max = round(((pos_vector[gs_idx].y() + half_length) - aabb_overall.xyz_min.y()) / y_step) + 1;
-	// 	z_idx_max = round(((pos_vector[gs_idx].z() + half_length) - aabb_overall.xyz_min.z()) / z_step) + 1;
-
-
-	// 	for (int x_idx = max(0, x_idx_min); x_idx < min(num_samples_per_dim-1, x_idx_max); x_idx++){
-	// 		for (int y_idx = max(0, y_idx_min); y_idx <  min(num_samples_per_dim-1, y_idx_max); y_idx++) {
-	// 			for (int z_idx = max(0, z_idx_min); z_idx <  min(num_samples_per_dim-1, z_idx_max); z_idx++) {
-	// 				int sample_idx = x_idx*num_samples_per_dim*num_samples_per_dim + y_idx*num_samples_per_dim + z_idx;
-	// 				if (samples_state[sample_idx] < 0) {continue;}
-
-	// 				Pos sample(aabb_overall.xyz_min.x()+ x_idx*x_step, aabb_overall.xyz_min.y()+ y_idx*y_step, aabb_overall.xyz_min.z()+ z_idx*z_step);
-	// 				Pos sample2gs = sample - pos_vector[gs_idx];
-
-	// 				if ((sample2gs.x()*sample2gs.x() + sample2gs.y()*sample2gs.y() + sample2gs.z()*sample2gs.z()) > half_length*half_length){
-	// 					continue;
-	// 				}
-
-	// 				float log_pdf = sample2gs.transpose() * (sigma.inverse()) * sample2gs;
-
-	// 				//if (std::isnan(log_pdf)){ continue;}
-
-	// 				float cur_pdf = exp(-0.5 *log_pdf);
-
-	// 				// if (cur_pdf < 1e-4){ continue;} // ??
-
-	// 				gs_containing[gs_idx].push_back(samples_state[sample_idx]);
-	// 			}
-	// 		}
-	// 	}
-	// }
-
-	// std::cout << "here " << std::endl;
-
-	// long unsigned int containing_count = 0;
-	// for (int i = 0; i < count; i++) {
-	// 	for (int j = 0; j < gs_containing[i].size(); j++){
-	// 		sps.neighbourgs[gs_containing[i][j]].push_back(i);
-	// 		containing_count ++;
-	// 	}
-	// }
-	// //std::cout << "Total containing count: " << containing_count << std::endl;
-	// return;
-}
-
-void sibr::GaussianView::BuildSamplesPerGs(unsigned int gs_idx, std::set<int>& current_sps_idx){
-	// Eigen::Matrix3f scale;
-	// scale.setZero();
-
-	// scale.diagonal() = Eigen::Vector3f(scale_vector[gs_idx].scale[0], scale_vector[gs_idx].scale[1], scale_vector[gs_idx].scale[2]);
-
-	// std::cout << "scale.diagonal(): " << scale.diagonal() << std::endl;
-
-	// Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-	// Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-	// Eigen::Matrix3f sigma = rotation * scale * (scale.transpose()) * (rotation.transpose());
-
-	// float threshold = pow((aabb_overall.xyz_max.x() - aabb_overall.xyz_min.x()) / 3.0, 2);
-
-	// //std::cout << "sigma.determinant(): " << sigma.determinant() << std::endl;
-
-
-	// int candidate_nums = pow(num_samples_per_dim, 3);
-	// #pragma omp parallel for
-	// for (int i = 0; i < candidate_nums; i++){
-	// 	int x_idx = i / pow(num_samples_per_dim, 2);
-	// 	int y_idx = (i - x_idx * pow(num_samples_per_dim, 2)) / num_samples_per_dim;
-	// 	int z_idx = i % num_samples_per_dim;
-
-	// 	Pos sample(aabb_overall.xyz_min.x()+ x_idx*x_step, aabb_overall.xyz_min.y()+ y_idx*y_step, aabb_overall.xyz_min.z()+ z_idx*z_step);
-	// 	Pos sample2gs = sample - pos_vector[gs_idx];
-
-	// 	if ((sample2gs.x()*sample2gs.x() + sample2gs.y()*sample2gs.y() + sample2gs.z()*sample2gs.z()) > threshold){
-	// 		continue;
-	// 	}
-
-	// 	float log_pdf = sample2gs.transpose() * (sigma.inverse()) * sample2gs;
-
-	// 	if (std::isnan(log_pdf)){ continue;}
-
-	// 	float cur_pdf = exp(-0.5 *log_pdf);
-
-	// 	if (std::isinf(cur_pdf)){ continue;};
-
-	// 	if (cur_pdf * opacity_vector[gs_idx] > PDF_THRESHOLD){
-	// 		current_sps_idx.insert(i);
-	// 	}
-	// }
-	
-	return;
-}
-
-
-
-void sibr::GaussianView::UpdateSamplesInfos(){
-
-
-	// #pragma omp parallel for
-	// for (int sample_idx = 0; sample_idx < sps.sample_points.size(); sample_idx++) {	// i : sample_idx
-	// 	sample_feature_shs[sample_idx].shs[0] = 0.0;
-	// 	sample_feature_shs[sample_idx].shs[1] = 0.0;
-	// 	sample_feature_shs[sample_idx].shs[2] = 0.0;
-	// 	// sps.neighbour_pdfs[sample_idx].clear();
-	// 	// sps.neighbour_pdfs[sample_idx].resize(sps.neighbourgs[sample_idx].size());
-	// 	for (int j = 0; j < sps.neighbourgs[sample_idx].size(); j++) { // j : gs_idx
-	// 		int gs_idx = sps.neighbourgs[sample_idx][j];
-	// 		Eigen::Matrix3f scale;
-	// 		scale.setZero();
-
-	// 		scale.diagonal() = Eigen::Vector3f(scale_vector[gs_idx].scale[0], scale_vector[gs_idx].scale[1], scale_vector[gs_idx].scale[2]);
-
-	// 		Eigen::Quaternionf origin_q(rot_vector[gs_idx].rot[0], rot_vector[gs_idx].rot[1], rot_vector[gs_idx].rot[2], rot_vector[gs_idx].rot[3]);
-	// 		Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-	// 		Eigen::Matrix3f sigma = rotation * scale * (scale.transpose()) * (rotation.transpose());
-
-	// 		Pos sample2gs = sample_positions[sample_idx] - pos_vector[gs_idx];
-
-	// 		float log_pdf = sample2gs.transpose() * (sigma.inverse()) * sample2gs;
-
-	// 		if (std::isnan(log_pdf)){ 
-	// 			sps.neighbour_pdfs[sample_idx][j] = 0.0;
-	// 			continue;
-	// 		}
-
-	// 		float cur_pdf = exp(-0.5 *log_pdf);
-
-	// 		sps.neighbour_pdfs[sample_idx][j] = cur_pdf;
-
-	// 	}
-	// }
-}
-
-// void sibr::GaussianView::SetupSamplesFeatures(){
-// 	// update the pdf //no need? just sum of pdf*opacity*shs
-
-// 	// if loop from gs, we can use atomic update to speed up
-// 	// update the feature
-
-// 	#pragma omp parallel for
-// 	for (int sample_idx = 0; sample_idx < sps.sample_points.size(); sample_idx++) {
-// 		sample_feature_shs[sample_idx].shs[0] = 0.0;
-// 		sample_feature_shs[sample_idx].shs[1] = 0.0;
-// 		sample_feature_shs[sample_idx].shs[2] = 0.0;
-// 		sps.neighbour_pdfs[sample_idx].clear();
-// 		sps.neighbour_pdfs[sample_idx].resize(sps.neighbourgs[sample_idx].size());
-		
-// 		for (int j = 0; j < sps.neighbourgs[sample_idx].size(); j++) { // j : gs_idx
-// 			int gs_idx = sps.neighbourgs[sample_idx][j];
-
-
-// 			Pos sample2gs = sample_positions[sample_idx] - pos_vector[gs_idx];
-
-// 			float log_pdf = sample2gs.transpose() * (sigma_vector[gs_idx]) * sample2gs;
-
-// 			float cur_pdf;
-// 			if (-0.5 *log_pdf > 50){
-// 				cur_pdf = 1e5;
-// 			}
-// 			else if (-0.5 *log_pdf < -50){
-// 				cur_pdf = 0;
-// 			}
-// 			else {
-// 				cur_pdf = exp(-0.5 *log_pdf);
-// 			}
-
-// 			float non_transparent;
-// 			non_transparent = min(0.999f, cur_pdf * opacity_vector[gs_idx]);
-// 			if (non_transparent < 0.01f){
-// 				non_transparent = 0.0;
-// 			}
-
-// 			sps.neighbour_pdfs[sample_idx][j] = cur_pdf;
-
-// 			sample_feature_shs[sample_idx].shs[0] += shs_vector[gs_idx].shs[0] * non_transparent;
-// 			sample_feature_shs[sample_idx].shs[1] += shs_vector[gs_idx].shs[1] * non_transparent;
-// 			sample_feature_shs[sample_idx].shs[2] += shs_vector[gs_idx].shs[2] * non_transparent;
-
-// 		}
-// 	}
-// }
-
-
-
-	//Testing////////////////
-	// int i = 0;
-	// Eigen::Matrix3f scale_, scale_inv;
-	// scale_.setZero();
-	// scale_.diagonal() = Eigen::Vector3f(scale_vector[i].scale[0]+0.0f, scale_vector[i].scale[1]+0.0f, scale_vector[i].scale[2]+0.0f);
-	// scale_inv.setZero();
-	// scale_inv.diagonal() = Eigen::Vector3f(1.0/(scale_vector[i].scale[0]+0.0f), 1.0/(scale_vector[i].scale[1]+0.0f), 1.0/(scale_vector[i].scale[2]+0.0f));
-
-	// Eigen::Quaternionf origin_q(rot_vector[i].rot[0], rot_vector[i].rot[1], rot_vector[i].rot[2], rot_vector[i].rot[3]);
-	// Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-	// Eigen::Matrix3f sigma = rotation * scale_ * (scale_.transpose()) * (rotation.transpose());
-	// Eigen::Matrix3f sigma_inv = rotation * scale_inv * scale_inv * (rotation.transpose());
-	// std::cout << "origin_q: " << origin_q << std::endl;
-	// std::cout << "rotation: " << rotation << std::endl;
-	// std::cout << "scale_: " << scale_ << std::endl;
-	// std::cout << "scale_inv: " << scale_inv << std::endl;
-	// std::cout << "sigma: " << sigma << std::endl;
-	// std::cout << "sigma_inv: " << sigma_inv << std::endl;
-
-	//Testing////////////////
-
-void sibr::GaussianView::UpdateGsHalfLengths(){
-	// #pragma omp parallel for
-	// for (int i = 0; i < vertices.size(); i++) {
-	// 	float scale_max = max(scale_vector[vertices[i].index].scale[0], scale_vector[vertices[i].index].scale[1]);
-	// 	scale_max = max(scale_max, scale_vector[vertices[i].index].scale[2]);
-	// 	vertices[i].half_length = scale_max * GS_HALF_LEN_SCALE;
-
-	// 	Eigen::Matrix3f scale, scale_inv;
-	// 	scale.setZero();
-	// 	scale.diagonal() = Eigen::Vector3f(scale_vector[i].scale[0]+0.0f, scale_vector[i].scale[1]+0.0f, scale_vector[i].scale[2]+0.0f);
-	// 	scale_inv.setZero();
-	// 	scale_inv.diagonal() = Eigen::Vector3f(1.0/(scale_vector[i].scale[0]+0.0f), 1.0/(scale_vector[i].scale[1]+0.0f), 1.0/(scale_vector[i].scale[2]+0.0f));
-
-	// 	Eigen::Quaternionf origin_q(rot_vector[i].rot[0], rot_vector[i].rot[1], rot_vector[i].rot[2], rot_vector[i].rot[3]);
-	// 	Eigen::Matrix3f rotation = origin_q.normalized().toRotationMatrix();
-	// 	Eigen::Matrix3f sigma = rotation * scale * (scale.transpose()) * (rotation.transpose());
-	// 	Eigen::Matrix3f sigma_inv = rotation * scale_inv * scale_inv * (rotation.transpose());
-	// 	half_length_vector[i] = scale_max * GS_HALF_LEN_SCALE;
-	// 	sigma_vector[i] = sigma_inv;
-
-
-	// }
-	
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(half_length_cuda, half_length_vector.data(), sizeof(float) * count, cudaMemcpyHostToDevice));
-	// CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(sigma_cuda, sigma_vector.data(), sizeof(Eigen::Matrix3f) * count, cudaMemcpyHostToDevice));
-
-}
-
-
-void sibr::GaussianView::UpdateRotationAndSHs(const DeformGraph &dm){
-
-
-}
-
-void sibr::GaussianView::UpdateFromOptimizedFeatures(double* features){
-}
-
 
 
 
