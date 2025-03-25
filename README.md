@@ -24,7 +24,7 @@ This is an implementation of the paper *ARAP-Deformation-of-Gaussian-Radiance-Fi
 
 ## Quick Start
 
-Run the following command to start the application:
+Run the following command to start the interactive application:
 
 ```bash
 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
@@ -38,6 +38,27 @@ You can specify the number of OpenMP threads by setting the `OMP_NUM_THREADS` en
 OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 ```
 
+
+## Data Format and Preparation
+
+### Dataset Directory Structure
+```bash
+<dataset_name>
+|---point_cloud
+|   |---iteration_<number>
+|   |   |---point_cloud.ply
+|   |   |---point_cloud_config.txt
+|   |   |---graph.obj (optional)
+|   |   |---deform.txt (optional)
+|---cfg_args
+|---transforms_train.json
+```
+
+### File Descriptions
+
+### Creating Your Own Data
+
+
 ## Interactive ARAP Deformation Usage
 
 ### Launching the Interactive System
@@ -48,13 +69,6 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 
 ### Saving and Reproducing the Deformation Process
 
-## Data Format and Preparation
-
-### Dataset Directory Structure
-
-### File Descriptions
-
-### Creating Your Own Data
 
 ## TODO
 
