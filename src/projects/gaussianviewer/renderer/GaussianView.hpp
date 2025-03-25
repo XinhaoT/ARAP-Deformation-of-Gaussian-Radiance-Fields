@@ -113,7 +113,7 @@ namespace sibr {
 		std::vector<EndPoint> ends_vector_backup;
 
 		std::vector<Vertex> ends_vertices;
-		float end_coeff = 2.0f; // experiment under 2.0; tried 1.0 (used in GaMeS)
+		float end_coeff = 2.0f; 
 		float axis_padding = 1e-3f;
 
 		float ortho_scale = 2.0f;
@@ -362,7 +362,6 @@ namespace sibr {
 		void UpdateAimPositionScale(int y);
 		void UpdatePosition(const DeformGraph &dm);
 		void UpdatePositionforSamples(const DeformGraph &dm);
-		void UpdateRotation(const DeformGraph &dm);
 		void getQuadMesh();
 		void getCentersMesh();
 		void getSamplesMesh();
@@ -395,8 +394,6 @@ namespace sibr {
 		void ReSampleScene();
 		void getSelectedSampleInfo();
 		void FilterCoveringGs();
-		void HistoricalUpdatePosition(const DeformGraph &dm);
-		void InversedCalculatePositionforSamples(const DeformGraph &dm);
 		void RebuildGraph();
 		void RecordDeformation();
 		void LoadDeformation();
@@ -405,12 +402,9 @@ namespace sibr {
 		void UpdateAsOcta(const DeformGraph &dm);
 		void UpdateAsCov(const DeformGraph &dm);
 		void UpdateAsSixPoints(const DeformGraph &dm);
-		void UpdateAsSixPointsDirect(const DeformGraph &dm);
-		void UpdateAsSixPointsToCov(const DeformGraph &dm);
 		void UpdateAsSixPointsWithdrawBad(const DeformGraph &dm);
 		void UpdateSamplesSH(const DeformGraph &dm);
 		void FastUpdateSamplesSH(const DeformGraph &dm);
-		void HistoricalUpdatePositionforSamples(const DeformGraph &dm);
 		void GPUGetInitialSamplesFeature();
 		void RunHistoricalDeform();
 		void CleanDeformHistory();
