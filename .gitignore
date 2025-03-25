@@ -4,3 +4,4 @@ dist/
 subbuild/
 install/
 .vscode/
+extlibs/CudaRasterizer/
