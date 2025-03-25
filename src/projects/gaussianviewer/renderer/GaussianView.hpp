@@ -102,14 +102,6 @@ namespace sibr {
 
 		bool _finish_rendering = false;
 
-		std::vector<float> raw_sample_positions, raw_pos_vector, raw_rot_vector, raw_scale_vector, raw_opacity_vector,  raw_sigma_vector, raw_opacity_orig_vector, raw_shs_vector, raw_sample_feature_shs;
-
-		std::vector<float> optimized_sample_positions, optimized_pos_vector, optimized_rot_vector, optimized_scale_vector, optimized_opacity_vector,  optimized_sigma_vector, optimized_opacity_orig_vector, optimized_shs_vector, optimized_sample_feature_shs;
-
-		std::vector<float> torch_sample_positions, torch_pos_vector, torch_rot_vector, torch_scale_vector, torch_opacity_vector,  torch_sigma_vector, torch_opacity_orig_vector, torch_shs_vector, torch_sample_feature_shs;
-
-		std::vector<float> torch_noshs_sample_positions, torch_noshs_pos_vector, torch_noshs_rot_vector, torch_noshs_scale_vector, torch_noshs_opacity_vector,  torch_noshs_sigma_vector, torch_noshs_opacity_orig_vector, torch_noshs_shs_vector, torch_noshs_sample_feature_shs;
-
 		std::vector<Pos> pos_vector;
 		std::vector<Rot> rot_vector;
 		std::vector<Vertex> vertices;
@@ -389,8 +381,6 @@ namespace sibr {
 		void RefreshAdam();
 		void UpdateFeatures();
 		void StoreAllStates(std::string state_name);
-		void LoadFromStates(std::string state_name);
-		void GPUGetCurrentFeatures();
 		void getEllipse(int gs_idx);
 		void getSphere(int i);
 		void SetupSamples();
@@ -411,7 +401,6 @@ namespace sibr {
 		void RecordDeformation();
 		void LoadDeformation();
 		void LoadComparePly();
-		void EnforceDeform();
 		void UpdateRotationFast(const DeformGraph &dm);
 		void UpdateAsOcta(const DeformGraph &dm);
 		void UpdateAsCov(const DeformGraph &dm);
@@ -421,9 +410,6 @@ namespace sibr {
 		void UpdateAsSixPointsWithdrawBad(const DeformGraph &dm);
 		void UpdateSamplesSH(const DeformGraph &dm);
 		void FastUpdateSamplesSH(const DeformGraph &dm);
-		void BuildLocalSamples();
-		std::vector<SamplePoint> GetLocalSamples();
-		std::vector<SamplePoint> GetLocalSamplesUniformly();
 		void HistoricalUpdatePositionforSamples(const DeformGraph &dm);
 		void GPUGetInitialSamplesFeature();
 		void RunHistoricalDeform();
@@ -439,7 +425,6 @@ namespace sibr {
 		void ExpandOpRange();
 		void CheckStaticSamples(); //as well as static gaussians
 		void CheckMovedGaussians();
-		void OptimizeGivenSteps(int step); 
 		void LoadMeshForGraph();
 		void ReloadAimPositions();
 		void LoadDeformScript0();
@@ -497,8 +482,7 @@ namespace sibr {
 		std::string input_graph_path;
 		std::string compare_ply_path;
 		int padding = 1;
-		bool _show_deform_efficiency = true;
-		bool _optimize_during_deform = false;
+		bool _show_deform_efficiency = false;
 
 		bool fix_x = false;
 		bool fix_y = false; 

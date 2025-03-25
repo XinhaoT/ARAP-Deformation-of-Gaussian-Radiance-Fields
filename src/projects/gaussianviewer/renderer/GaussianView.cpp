@@ -1596,41 +1596,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 	}
 
 
-	// Choose the local samples
-	if (input.key().isActivated(sibr::Key::X)){
-		if (input.mouseButton().isPressed(sibr::Mouse::Right)){
-			std::cout << "Right is pressed" << std::endl;
-			max_x = cur_pos(0);
-			max_y = cur_pos(1);
-			press_x = cur_pos(0);
-			press_y = cur_pos(1);
-			flag_rect = true;
-		}
-
-		if (input.mouseButton().isReleased(sibr::Mouse::Right)){
-			std::cout << "Right is released" << std::endl;
-			flag_select = true;
-			min_x = min(cur_pos(0), max_x);
-			min_y = min(cur_pos(1), max_y);
-			max_x = max(cur_pos(0), max_x);
-			max_y = max(cur_pos(1), max_y);
-			flag_rect = false;
-
-			local_gs_idx.clear();
-
-			for (unsigned int i = 0; i < pos_vector.size(); i++)
-			{
-				Vector2f pos_2d = get_2d_pos(pos_vector[i], T, window_size(0), window_size(1));
-
-				if ((pos_2d(0) > min_x) && (pos_2d(0) < max_x) && (pos_2d(1) > min_y) && (pos_2d(1) < max_y))
-				{
-					local_gs_idx.push_back(i);
-				}
-			}
-			BuildLocalSamples();
-		}
-	}
-
 	if (input.key().isActivated(sibr::Key::V)){
 		if (input.mouseButton().isPressed(sibr::Mouse::Right)){
 			std::cout << "Right is pressed" << std::endl;
@@ -1825,9 +1790,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 			}
 			UpdateCenterRadius();
 			getCentersMesh();
-			if(_optimize_during_deform){
-				OptimizeGivenSteps(3);
-			}
 		}
 	}
 
@@ -1875,10 +1837,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 		playback_steps -= 1;
 	}
 
-	if (_rest_deform_steps > 0){
-		_rest_deform_steps -= 1;
-		EnforceDeform();
-	}
 
 	if (input.key().isReleased(sibr::Key::B) && flag_valid_deform){
 		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(pos_cuda, pos_vector.data(), sizeof(Pos)*count, cudaMemcpyHostToDevice)); //?
@@ -2264,9 +2222,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 		UpdateCenterRadius();
 		getCentersMesh();
 
-		if(_optimize_during_deform){
-			OptimizeGivenSteps(2);
-		}
 
 	}
 
@@ -2637,15 +2592,11 @@ void sibr::GaussianView::onGUI()
 		deform_graph.w_reg = (double) _w_reg;
 		deform_graph.w_con = (double) _w_con;
 	}
-	ImGui::InputFloat("w_control_factor", &(_weighting_factor), 1.0, 10.0, 4);
 
 	ImGui::SameLine();
 	ImGui::Checkbox("Only Deform Gs", &_only_deform_gs);
 
 	ImGui::Checkbox("Deform Efficiency", &_show_deform_efficiency);
-	ImGui::Checkbox("Optimize During Deform", &_optimize_during_deform);
-
-	ImGui::Checkbox("Optimize from start", &_optimize_from_start);
 
 	ImGui::End();
 
@@ -2687,7 +2638,7 @@ void sibr::GaussianView::onGUI()
 			}
 		}
 	}
-	if (ImGui::Button("Store Graph to Mesh")) {
+	if (ImGui::Button("Store Graph")) {
 		std::string output_graph(pcd_filepath);
 		output_graph.replace(output_graph.length()-4, 4, "_graph.obj");
 
@@ -6174,34 +6125,6 @@ void sibr::GaussianView::GPUGetInitialSamplesFeature(){
 	CopyFeatureFromCPU2GPU();
 }
 
-void sibr::GaussianView::GPUGetCurrentFeatures(){
-	CopyFeatureFromCPU2GPU();
-
-	// SetTestAimFeatures();
-
-	auto start = std::chrono::steady_clock::now();
-	CudaRasterizer::Rasterizer::forward3d(sps.total_neighbouring, 3, 16, sps.sample_points.size(),count,
-										sample_pos_cuda,
-										paired_gs_idx,
-										paired_sp_idx,
-										pos_cuda,
-										rot_cuda,
-										scale_orig_cuda,
-										opacity_orig_cuda,
-										shs_cuda,
-										half_length_cuda,
-										sigma_cuda,
-										cur_feature_cuda,
-										cur_opacity_cuda);
-	cudaDeviceSynchronize();
-	auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsedSeconds = end - start;
-    std::cout << "forward 3d took " << elapsedSeconds.count() << " seconds." << std::endl;
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(sample_feature_shs.data(), cur_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size(), cudaMemcpyDeviceToHost));
-	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(feature_opacity_vector.data(), cur_opacity_cuda, sizeof(float) * sps.sample_points.size(), cudaMemcpyDeviceToHost));
-
-}
 
 void sibr::GaussianView::FetchAimIdx(){
 	vector<int> aim_idx_vector(sps.sample_points.size());
@@ -6210,36 +6133,6 @@ void sibr::GaussianView::FetchAimIdx(){
 		aim_idx_vector[i] = sps.sample_points[samples_pos_payload_vector[i].payload].aim_index;
 	}
 	CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(aim_index_cuda, aim_idx_vector.data(), sizeof(int) * sps.sample_points.size(), cudaMemcpyHostToDevice));
-}
-
-void sibr::GaussianView::OptimizeGivenSteps(int steps){
-	auto start_op = std::chrono::steady_clock::now();
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMemset(step, 0, sizeof(int)));
-
-	adjust_op_range = false;
-	ExpandOpRange();
-
-	if (enable_adaptive_lpf){
-		GetAdaLpfRatio();
-	}
-	CopyFeatureFromCPU2GPU();
-
-
-	for (int i = 0; i < steps; i++){
-
-		CopyPartialInfoFromGPU2CPU();
-		UpdateContainingRelationship();
-
-		GPUOptimize();
-	}
-	CopyFeatureFromGPU2CPU();
-
-	adjust_op_range = true;
-
-	auto end_op = std::chrono::steady_clock::now();
-	std::chrono::duration<double> elapsedSeconds_op = end_op - start_op;
-	std::cout << steps << " steps Optimization took " << elapsedSeconds_op.count() << " seconds." << std::endl;
 }
 
 void sibr::GaussianView::GPUOptimize(){
@@ -6546,139 +6439,6 @@ void sibr::GaussianView::StoreAllStates(std::string state_name){
 }
 
 
-void sibr::GaussianView::LoadFromStates(std::string state_name){
-	RefreshAdam();
-	if (state_name == "deformed"){
-		if (raw_sample_positions.size() == 0){
-			raw_sample_positions = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_sample_pos.txt");
-			raw_sample_feature_shs = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_feature_shs.txt");
-			raw_pos_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_pos.txt");
-			raw_rot_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_rot.txt");
-			raw_scale_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_scale.txt");
-			raw_opacity_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_opacity.txt");
-			raw_sigma_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_sigma_inverse.txt");
-			raw_shs_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_shs.txt");
-		}
-		for (int i = 0; i < sample_positions.size(); i++){
-			for (int j = 0; j < 3; j++){
-				sample_positions[i](j) = raw_sample_positions[i*3 + j];
-				sample_feature_shs[i].shs[j] = raw_sample_feature_shs[i*3 + j];
-			}
-		}
-		for (int i = 0; i < count; i++) {
-			for (int j = 0; j < 3; j++){
-				pos_vector[i](j) = raw_pos_vector[i*3 + j];
-				shs_vector[i].shs[j] = raw_shs_vector[i*3 + j];
-				scale_vector[i].scale[j] = raw_scale_vector[i*3 + j];
-				scale_orig_vector[i].scale[j] = log(scale_vector[i].scale[j]);
-			}
-			for (int j = 0; j < 4; j++) {
-				rot_vector[i].rot[j] = raw_rot_vector[i*4 + j];
-			}
-			opacity_vector[i] = raw_opacity_vector[i];
-			opacity_orig_vector[i] = inverse_sigmoid(opacity_vector[i]);
-		}
-	}
-
-	else if (state_name == "optimized") {
-		if (optimized_sample_positions.size() == 0){
-			optimized_sample_positions = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_sample_pos.txt");
-			optimized_sample_feature_shs = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_feature_shs.txt");
-			optimized_pos_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_pos.txt");
-			optimized_rot_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_rot.txt");
-			optimized_scale_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_scale.txt");
-			optimized_opacity_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_opacity.txt");
-			optimized_sigma_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_sigma_inverse.txt");
-			optimized_shs_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_shs.txt");
-		}
-
-		for (int i = 0; i < sample_positions.size(); i++){
-			for (int j = 0; j < 3; j++){
-				sample_positions[i](j) = optimized_sample_positions[i*3 + j];
-				sample_feature_shs[i].shs[j] = optimized_sample_feature_shs[i*3 + j];
-			}
-		}
-		for (int i = 0; i < count; i++) {
-			for (int j = 0; j < 3; j++){
-				pos_vector[i](j) = optimized_pos_vector[i*3 + j];
-				shs_vector[i].shs[j] = optimized_shs_vector[i*3 + j];
-				scale_vector[i].scale[j] = optimized_scale_vector[i*3 + j];
-				scale_orig_vector[i].scale[j] = log(scale_vector[i].scale[j]);
-			}
-			for (int j = 0; j < 4; j++) {
-				rot_vector[i].rot[j] = optimized_rot_vector[i*4 + j];
-			}
-			opacity_vector[i] = optimized_opacity_vector[i];
-			opacity_orig_vector[i] = inverse_sigmoid(opacity_vector[i]);
-		}
-	}
-
-	else if (state_name == "torch_optimized") {
-		if (torch_sample_positions.size() == 0){
-			torch_sample_positions = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_sample_pos.txt");
-			torch_sample_feature_shs = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_feature_shs.txt");
-			torch_pos_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_pos.txt");
-			torch_rot_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_rot.txt");
-			torch_scale_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_scale.txt");
-			torch_opacity_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_opacity.txt");
-			torch_sigma_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_sigma_inverse.txt");
-			torch_shs_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_shs.txt");
-		}
-
-		for (int i = 0; i < sample_positions.size(); i++){
-			for (int j = 0; j < 3; j++){
-				sample_positions[i](j) = torch_sample_positions[i*3 + j];
-				sample_feature_shs[i].shs[j] = torch_sample_feature_shs[i*3 + j];
-			}
-		}
-		for (int i = 0; i < count; i++) {
-			for (int j = 0; j < 3; j++){
-				pos_vector[i](j) = torch_pos_vector[i*3 + j];
-				shs_vector[i].shs[j] = torch_shs_vector[i*3 + j];
-				scale_vector[i].scale[j] = torch_scale_vector[i*3 + j];
-				scale_orig_vector[i].scale[j] = log(scale_vector[i].scale[j]);
-			}
-			for (int j = 0; j < 4; j++) {
-				rot_vector[i].rot[j] = torch_rot_vector[i*4 + j];
-			}
-			opacity_vector[i] = torch_opacity_vector[i];
-			opacity_orig_vector[i] = inverse_sigmoid(opacity_vector[i]);
-		}
-	}
-
-	else if (state_name == "torch_optimized_no_shs") {
-		if (torch_noshs_sample_positions.size() == 0){
-			torch_noshs_sample_positions = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_sample_pos.txt");
-			torch_noshs_sample_feature_shs = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_feature_shs.txt");
-			torch_noshs_pos_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_pos.txt");
-			torch_noshs_rot_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_rot.txt");
-			torch_noshs_scale_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_scale.txt");
-			torch_noshs_opacity_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_gassian_opacity.txt");
-			torch_noshs_sigma_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_sigma_inverse.txt");
-			torch_noshs_shs_vector = readFloatsFromFile("input_states/"+state_name+"/" + state_name + "_shs.txt");
-		}
-
-		for (int i = 0; i < sample_positions.size(); i++){
-			for (int j = 0; j < 3; j++){
-				sample_positions[i](j) = torch_noshs_sample_positions[i*3 + j];
-				sample_feature_shs[i].shs[j] = torch_noshs_sample_feature_shs[i*3 + j];
-			}
-		}
-		for (int i = 0; i < count; i++) {
-			for (int j = 0; j < 3; j++){
-				pos_vector[i](j) = torch_noshs_pos_vector[i*3 + j];
-				shs_vector[i].shs[j] = torch_noshs_shs_vector[i*3 + j];
-				scale_vector[i].scale[j] = torch_noshs_scale_vector[i*3 + j];
-				scale_orig_vector[i].scale[j] = log(scale_vector[i].scale[j]);
-			}
-			for (int j = 0; j < 4; j++) {
-				rot_vector[i].rot[j] = torch_noshs_rot_vector[i*4 + j];
-			}
-			opacity_vector[i] = torch_noshs_opacity_vector[i];
-			opacity_orig_vector[i] = inverse_sigmoid(opacity_vector[i]);
-		}
-	}
-}
 
 
 void sibr::GaussianView::SetupSamples(){
@@ -7546,272 +7306,6 @@ void sibr::GaussianView::ReloadAimPositions(){
 	}
 }
 
-void sibr::GaussianView::EnforceDeform(){
-	if (deform_graph.indices_blocks.size()){
-		UpdateAimPosition(_displacement, _record_history);
-
-		Deform deform(cand_vertices, cand_points, control_indices, static_indices, deform_graph, aim_positions, _constraints_on_center, _show_deform_efficiency, knn_k, blocks_type, _weighting_factor);
-
-		if (_optimize_from_start){
-			deform.nodes = &(deform_graph.back_up_nodes);
-		}
-
-		deform.real_time_deform();				
-
-		double *x = deform.m_x.data();
-		deform_graph.putFreeInputs(x, cand_points);
-
-		// The order of the update is important!
-		if (! _only_deform_gs){
-			UpdatePositionforSamples(deform_graph); // before update the nodes' position
-		}
-
-		UpdatePosition(deform_graph);
-		UpdateAsSixPointsWithdrawBad(deform_graph);
-		if (nodes_on_mesh){
-			cand_points = simplified_points;
-		}
-		else{
-			cand_points = pos_vector;
-		}
-		ReloadAimPositions();
-
-		deform_graph.resetRT();
-
-	}
-
-	if (_rest_deform_steps == 0){
-		CUDA_SAFE_CALL_ALWAYS(cudaMemcpy(pos_cuda, pos_vector.data(), sizeof(Pos)*count, cudaMemcpyHostToDevice));
-		UpdateFeatures();
-		RefreshAdam();
-	}
-}
-
-
-void sibr::GaussianView::BuildLocalSamples(){
-	if (local_gs_idx.size() == 0) return;
-	sample_positions.clear();
-	backup_sample_positions.clear();
-
-	std::vector<SamplePoint> local_sps = GetLocalSamplesUniformly();
-	std::cout << "size of local_sps: " << local_sps.size() << std::endl;
-
-	sps = SamplePoints(local_sps);
-	setupWeightsforSamples(deform_graph);
-
-	sample_feature_shs.resize(sps.sample_points.size());
-	sps.neighbour_pdfs.resize(sps.sample_points.size());
-	feature_opacity_vector.resize(sps.sample_points.size());
-
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(sample_pos_cuda));
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(cur_feature_cuda));
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(feature_grad_cuda));
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(aim_feature_cuda));
-	CUDA_SAFE_CALL_ALWAYS(cudaFree(cur_opacity_cuda));
-
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&sample_pos_cuda, sizeof(Pos) * sps.sample_points.size()));
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&cur_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size()));
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&feature_grad_cuda, sizeof(SHs<3>) * sps.sample_points.size()));
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&aim_feature_cuda, sizeof(SHs<3>) * sps.sample_points.size()));
-	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&cur_opacity_cuda, sizeof(float) * sps.sample_points.size()));
-
-	vector<float> init_scale_3d_max(count);
-	#pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		init_scale_3d_max[gs_idx] = 0.0f;
-	}
-	#pragma omp parallel for
-	for (int i = 0; i < local_gs_idx.size(); i++){
-		int gs_idx = local_gs_idx[i];
-		Scale s_3d;
-		s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[0]+0.0f);
-		s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[1]+0.0f);
-		s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[2]+0.0f);
-		float scale_max = max(s_3d.scale[0], s_3d.scale[1]);
-		scale_max = max(scale_max, s_3d.scale[2]);
-		init_scale_3d_max[gs_idx] = scale_max;
-	}
-
-
-	HistoricalUpdatePositionforSamples(deform_graph);
-
-	RefreshAdam();
-
-	return;
-}
-
-
-std::vector<SamplePoint> sibr::GaussianView::GetLocalSamples(){
-	int local_uniform_samples = pow(LOCAL_SAMPLES_PER_DIM, 3);
-	std::vector<SamplePoint> local_sps(local_uniform_samples);
-	sample_positions.resize(local_sps.size());
-	backup_sample_positions.resize(local_sps.size());
-
-	// Build Local AABB
-	AABB aabb_local;
-	aabb_local.xyz_min = pos_backup_vector[local_gs_idx[0]];
-	aabb_local.xyz_max = pos_backup_vector[local_gs_idx[0]];
-
-	for (int i = 0; i < local_gs_idx.size(); i++){
-		aabb_local.xyz_min.x() = min(aabb_local.xyz_min.x(), pos_backup_vector[local_gs_idx[i]].x());
-		aabb_local.xyz_min.y() = min(aabb_local.xyz_min.y(), pos_backup_vector[local_gs_idx[i]].y());
-		aabb_local.xyz_min.z() = min(aabb_local.xyz_min.z(), pos_backup_vector[local_gs_idx[i]].z());
-		
-		aabb_local.xyz_max.x() = max(aabb_local.xyz_max.x(), pos_backup_vector[local_gs_idx[i]].x());
-		aabb_local.xyz_max.y() = max(aabb_local.xyz_max.y(), pos_backup_vector[local_gs_idx[i]].y());
-		aabb_local.xyz_max.z() = max(aabb_local.xyz_max.z(), pos_backup_vector[local_gs_idx[i]].z());
-	}
-	Pos xyz_mean = (aabb_local.xyz_max + aabb_local.xyz_min) / 2.0;
-
-	aabb_local.xyz_min = (aabb_local.xyz_min - xyz_mean) * 1.2 + xyz_mean;
-	aabb_local.xyz_max = ((aabb_local.xyz_max - xyz_mean) * 1.2 + xyz_mean - aabb_local.xyz_min) * (1.0 + (1.0)/LOCAL_SAMPLES_PER_DIM) + aabb_local.xyz_min;
-
-	std::cout << "local_xyz_min: " << aabb_local.xyz_min << std::endl;
-	std::cout << "local_xyz_max: " << aabb_local.xyz_max << std::endl;
-
-	// Local Uniform Samples
-	float x_step_local = (aabb_local.xyz_max.x() - aabb_local.xyz_min.x()) / LOCAL_SAMPLES_PER_DIM;
-	float y_step_local = (aabb_local.xyz_max.y() - aabb_local.xyz_min.y()) / LOCAL_SAMPLES_PER_DIM;
-	float z_step_local = (aabb_local.xyz_max.z() - aabb_local.xyz_min.z()) / LOCAL_SAMPLES_PER_DIM;
-
-	#pragma omp parallel for
-	for (int i = 0; i < local_uniform_samples; i++) {
-		int x_idx = i / pow(LOCAL_SAMPLES_PER_DIM, 2);
-		int y_idx = (i - x_idx * pow(LOCAL_SAMPLES_PER_DIM, 2)) / LOCAL_SAMPLES_PER_DIM;
-		int z_idx = i % LOCAL_SAMPLES_PER_DIM;
-
-		Pos sample(aabb_local.xyz_min.x()+ x_idx*x_step_local, aabb_local.xyz_min.y()+ y_idx*y_step_local, aabb_local.xyz_min.z()+ z_idx*z_step_local);
-
-		sample_positions[i] = sample;
-		backup_sample_positions[i] = sample;
-		local_sps[i] = SamplePoint();
-	}
-
-	float min_step_local = min(x_step_local, y_step_local);
-	min_step_local = min(min_step_local, z_step_local);
-	_estimated_coeff = 1.5f / min_step_local;
-
-	std::cout << "size of local_gs_idx: " << local_gs_idx.size() << std::endl;
-	std::cout << "_estimated_coeff: " << _estimated_coeff << std::endl;
-
-	// get all influenced gaussians
-	std::vector<bool> is_influenced(count);
-	float box_length = ((aabb_local.xyz_max - aabb_local.xyz_min)/2.0f).norm();
-
-	#pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		Scale s_3d;
-		s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[0]+0.0f);
-		s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[1]+0.0f);
-		s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[2]+0.0f);
-		float scale_max = max(s_3d.scale[0], s_3d.scale[1]);
-		scale_max = max(scale_max, s_3d.scale[2]);
-
-		float dist = (pos_backup_vector[gs_idx] - (aabb_local.xyz_max + aabb_local.xyz_min) / 2.0f).norm();
-
-		is_influenced[gs_idx] = (scale_max + box_length > dist);
-	}
-	local_gs_idx.clear();
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		if (is_influenced[gs_idx]){
-			local_gs_idx.push_back(gs_idx);
-		}
-	}
-	std::cout << "size of influenced gs: " << local_gs_idx.size() << std::endl;
-
-	return local_sps;
-}
-
-
-std::vector<SamplePoint> sibr::GaussianView::GetLocalSamplesUniformly(){
-	// Build Local AABB
-	AABB aabb_local;
-	aabb_local.xyz_min = pos_backup_vector[local_gs_idx[0]];
-	aabb_local.xyz_max = pos_backup_vector[local_gs_idx[0]];
-
-	for (int i = 0; i < local_gs_idx.size(); i++){
-		aabb_local.xyz_min.x() = min(aabb_local.xyz_min.x(), pos_backup_vector[local_gs_idx[i]].x());
-		aabb_local.xyz_min.y() = min(aabb_local.xyz_min.y(), pos_backup_vector[local_gs_idx[i]].y());
-		aabb_local.xyz_min.z() = min(aabb_local.xyz_min.z(), pos_backup_vector[local_gs_idx[i]].z());
-		
-		aabb_local.xyz_max.x() = max(aabb_local.xyz_max.x(), pos_backup_vector[local_gs_idx[i]].x());
-		aabb_local.xyz_max.y() = max(aabb_local.xyz_max.y(), pos_backup_vector[local_gs_idx[i]].y());
-		aabb_local.xyz_max.z() = max(aabb_local.xyz_max.z(), pos_backup_vector[local_gs_idx[i]].z());
-	}
-	Pos xyz_mean = (aabb_local.xyz_max + aabb_local.xyz_min) / 2.0;
-
-	aabb_local.xyz_min = (aabb_local.xyz_min - xyz_mean) * 1.2 + xyz_mean;
-	aabb_local.xyz_max = (aabb_local.xyz_max - xyz_mean) * 1.2 + xyz_mean + Pos(LOCAL_UNIFORM_DIST, LOCAL_UNIFORM_DIST, LOCAL_UNIFORM_DIST);
-
-	std::cout << "local_xyz_min: " << aabb_local.xyz_min << std::endl;
-	std::cout << "local_xyz_max: " << aabb_local.xyz_max << std::endl;
-
-	// TODO:
-	// first calculate the accurate number of samples
-	int x_dim_num =  static_cast<int>(ceil((aabb_local.xyz_max.x() - aabb_local.xyz_min.x()) / LOCAL_UNIFORM_DIST));
-	int y_dim_num =  static_cast<int>(ceil((aabb_local.xyz_max.y() - aabb_local.xyz_min.y()) / LOCAL_UNIFORM_DIST));
-	int z_dim_num =  static_cast<int>(ceil((aabb_local.xyz_max.z() - aabb_local.xyz_min.z()) / LOCAL_UNIFORM_DIST));
-
-	std::cout << "x_dim_num: " << x_dim_num << std::endl;
-	std::cout << "y_dim_num: " << y_dim_num << std::endl;
-	std::cout << "z_dim_num: " << z_dim_num << std::endl;
-	
-	int local_uniform_samples = x_dim_num * y_dim_num * z_dim_num;
-	std::vector<SamplePoint> local_sps(local_uniform_samples);
-	sample_positions.resize(local_sps.size());
-	backup_sample_positions.resize(local_sps.size());
-
-	#pragma omp parallel for
-	for (int x_idx = 0; x_idx < x_dim_num; x_idx++) {
-		for (int y_idx = 0; y_idx < y_dim_num; y_idx++) {
-			for (int z_idx = 0; z_idx < z_dim_num; z_idx++) {
-				Pos sample(aabb_local.xyz_min.x()+ x_idx*LOCAL_UNIFORM_DIST, aabb_local.xyz_min.y()+ y_idx*LOCAL_UNIFORM_DIST, aabb_local.xyz_min.z()+ z_idx*LOCAL_UNIFORM_DIST);
-				int i = x_idx*y_dim_num*z_dim_num + y_idx*z_dim_num + z_idx;
-				sample_positions[i] = sample;
-				backup_sample_positions[i] = sample;
-				local_sps[i] = SamplePoint();
-			}
-		}
-	}
-
-	_estimated_coeff = 2.0f / LOCAL_UNIFORM_DIST;
-	_estimated_const = 100;
-
-	std::cout << "size of local_gs_idx: " << local_gs_idx.size() << std::endl;
-	std::cout << "_estimated_coeff: " << _estimated_coeff << std::endl;
-
-	// get all influenced gaussians
-	std::vector<bool> is_influenced(count);
-	float box_length = ((aabb_local.xyz_max - aabb_local.xyz_min)/2.0f).norm();
-
-	#pragma omp parallel for
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		Scale s_3d;
-		s_3d.scale[0] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[0]+0.0f);
-		s_3d.scale[1] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[1]+0.0f);
-		s_3d.scale[2] = sqrt(-2.0f*log(CUTOFF_ALPHA/opacity_backup_vector[gs_idx])) * (scale_backup_vector[gs_idx].scale[2]+0.0f);
-		float scale_max = max(s_3d.scale[0], s_3d.scale[1]);
-		scale_max = max(scale_max, s_3d.scale[2]);
-
-		float dist = (pos_backup_vector[gs_idx] - (aabb_local.xyz_max + aabb_local.xyz_min) / 2.0f).norm();
-
-		is_influenced[gs_idx] = (scale_max + box_length > dist);
-	}
-	local_gs_idx.clear();
-	for (int gs_idx = 0; gs_idx < count; gs_idx++){
-		if (is_influenced[gs_idx]){
-			local_gs_idx.push_back(gs_idx);
-		}
-	}
-	std::cout << "size of influenced gs: " << local_gs_idx.size() << std::endl;
-
-	return local_sps;
-
-
-}
-
-
-
 
 void sibr::GaussianView::UpdateCenterRadius(){
 	for(int i = 0; i < deform_graph.indices_blocks.size(); i++){
@@ -7823,10 +7317,7 @@ void sibr::GaussianView::UpdateCenterRadius(){
 		}
 		center = center / cur_block.size();
 		aim_centers[i] = center;
-
 	}
 	return;
 }
-
-
 
