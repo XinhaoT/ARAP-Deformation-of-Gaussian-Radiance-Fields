@@ -5,3 +5,10 @@ subbuild/
 install/
 .vscode/
 extlibs/CudaRasterizer/
+extlibs/mrf/
+extlibs/nanoflann/
+extlibs/rapidxml/
+extlibs/picojson/
+extlibs/xatlas/
+extlibs/nativefiledialog/
+extlibs/imgui/
