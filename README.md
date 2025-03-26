@@ -43,6 +43,7 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 
 
 ## Data Format and Preparation
+The data should be formatted as follows before being used as input for the interactive system.
 
 ### Dataset Directory Structure
 ```bash
@@ -58,7 +59,7 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 ```
 
 ### File Descriptions
-*point_cloud.ply*, *cfg_args*, and *transforms_test.json* 
+*point_cloud.ply*, *cfg_args*, and *transforms_test.json* are commonly used input and output file formats in the [3DGS](https://github.com/graphdeco-inria/gaussian-splatting) project.
 
 
 #### point_cloud_config.txt
@@ -76,20 +77,22 @@ This example sets `grid_num_per_dim` to 64, `is_synthetic` to 1 (true), and `hig
 
 | Parameter            | Default Value | Description |
 |----------------------|--------------|-------------|
-| `grid_num_per_dim`  | 64           | Number of spatial hashing grids per dimension. |
-| `is_synthetic`      | 1            | Indicates whether the dataset is synthetic.  |
-| `high_quality`      | 0            | Determines whether high-quality mode is enabled, for flat-gaussian or  |
+| `grid_num_per_dim`  | 64           | Number of spatial hashing grids per dimension. A sampling resolution of 64×64×64 is the default in our paper. Higher resolutions may yield slightly better results but reduce efficiency and may exceed GPU memory limits.|
+| `is_synthetic`      | 1            | Indicates whether the dataset is synthetic. This parameter does not affect the algorithm's performance; it only indicates whether the dataset is synthetic (allowing quantitative metrics to be computed using ground truth).|
+| `high_quality`      | 0            | For scenes with extremely high-frequency details, such as flat-Gaussian, enabling this setting may improve quality. For 3DGS representation, the default value is 0. See the implementation details in our paper for more information.  |
 
 #### graph.obj (optinal)
-
+This .obj file can be used as the specified graph structure for Embedded Deformation.
 
 #### deform.txt (optinal)
-
+This is a data file we defined to support exporting and importing the deformation process, allowing deformation recording and reproduction.
 
 ### Creating Your Own Data
-[3DGS](https://github.com/graphdeco-inria/gaussian-splatting)
+Rebuild the Gaussian radiance field of your customized scene using the [3DGS](https://github.com/graphdeco-inria/gaussian-splatting) project, and construct the dataset in the above format as input.
 
-## Interactive ARAP Deformation Usage
+
+
+## Interactive System User Guide
 
 ### Launching the Interactive System
    ```bash
@@ -97,39 +100,52 @@ This example sets `grid_num_per_dim` to 64, `is_synthetic` to 1 (true), and `hig
    ```
 
 ### Mouse & Keyboard Controls
+The following is an introduction to the new features related to Gaussian radiance field deformation, built on the visualization tools of the [3DGS](https://github.com/graphdeco-inria/gaussian-splatting) and [SIBR](https://sibr.gitlabpages.inria.fr/) projects, with the most common ones highlighted in red. 
 
 #### Mouse + Keyboard Combinations
 | Keys | Function |
 |------|----------|
-| Left Click + Drag | rotate the Scene |
-| M + Right Click + Drag | draw a box to add one control region |
+| <span style="color:red">M + Right Click + Drag</span> | draw a box to add one control region |
 | K + Right Click + Drag | draw a box to set the ...|
-| B + Left Click + Drag | drag to deform |
+| <span style="color:red">B + Left Click + Drag</span> | drag to deform |
 
 
 #### Keyboard Operations
 | Key | Function |
 |-----|----------|
-| F | show/hide Gaussian radiance field |
-| G | show/hide Graph |
-| H | show/hide highlights for control region |
-| F4 | show/hide the samples of radiance field |
-| F8 | switch between aim/current samples of radiance field |
-| N |  |
-| J |  |
-| C |  |
+| <span style="color:red">N</span> |  |
+| <span style="color:red">J</span> |  |
+| <span style="color:red">C</span> |  |
 | U |  |
-| V | switch the deform opertion type (bending/twisting/scaling) |
+| <span style="color:red">V</span> | switch the deform opertion type (bending/twisting/scaling) |
 | X |  |
 | T | clean the selected control regions |
-| R | reset |
+| <span style="color:red">R</span> | reset |
 | F1 | take a snapshot (of Gaussians and sampled radiance field) |
 | F2 | load a snapshot (with the index shown in ...) |
 | <- | load the previous snapshot |
 | -> | load the next snapshot |
-| F6 | optimize gaussians to align them with the radiance field |
+| <span style="color:red">F6</span> | optimize gaussians to align them with the radiance field |
+| F | show/hide Gaussian radiance field |
+| <span style="color:red">G</span> | show/hide Graph |
+| <span style="color:red">H</span> | show/hide highlights for control region |
+| F4 | show/hide the samples of radiance field |
+| F8 | switch between aim/current samples of radiance field |
 
 
+#### Button Operations
+| Button | Function |
+|-----|----------|
+| <span style="color:red">Load mesh for graph</span> |  |
+| <span style="color:red">Rebuild deform graph</span> |  |
+| Set new knn |  |
+| <span style="color:red">Record deformation</span> |  |
+| <span style="color:red">Load deformation</span> |  |
+| <span style="color:red">Run deformation</span> |  |
+| Clean deformation |  |
+| Load deform scriptX |  |
+| Run deform script |  |
+| Clear Snapshots |  |
 
 #### Control Region Explaination
 
@@ -141,7 +157,7 @@ red -
 
 
 
-### Example: Performing ARAP Deformation
+### A Simple Example: Performing ARAP Deformation
 
 #### Stage I Geometrical Deformation of Gaussians
 
@@ -149,15 +165,19 @@ red -
 
 ### Saving and Reproducing the Deformation Process
 
-#### Case I:
+#### Case I: 
 
 #### Case II:
 
 #### Case III:
 
+#### Note
+
 
 ## TODO
-We will release the whole datasets (including .blend files and ground-truth images) soon. 
+We will release the datasets presented in the paper (including .blend files and ground-truth images) soon. 
+
+We will upload our video of this interactive system soon.
 
 Currently, this project also supports ARAP deformation of radiance fields under the flat-Gaussian representation proposed in the paper *GaMeS: Mesh-Based Adapting and Modification of Gaussian Splatting*. We will provide detailed usage instructions as soon as possible.
 
