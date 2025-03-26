@@ -61,22 +61,33 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 *point_cloud.ply*, *cfg_args*, and *transforms_test.json* 
 
 
-
----point_cloud_config.txt
-```bash
+#### point_cloud_config.txt
+The `point_cloud_config.txt` file follows a simple format where contains three constant in the order:
 
 ```
+<grid_num_per_dim> <is_synthetic> <high_quality>
+```
+
+Default example:
+```
+64 1 0
+```
+This example sets `grid_num_per_dim` to 64, `is_synthetic` to 1 (true), and `high_quality` to 0 (false).
+
+| Parameter            | Default Value | Description |
+|----------------------|--------------|-------------|
+| `grid_num_per_dim`  | 64           | Number of spatial hashing grids per dimension. |
+| `is_synthetic`      | 1            | Indicates whether the dataset is synthetic.  |
+| `high_quality`      | 0            | Determines whether high-quality mode is enabled, for flat-gaussian or  |
+
+#### graph.obj (optinal)
 
 
----graph.obj
-
-
-
----deform.txt
+#### deform.txt (optinal)
 
 
 ### Creating Your Own Data
-
+[3DGS](https://github.com/graphdeco-inria/gaussian-splatting)
 
 ## Interactive ARAP Deformation Usage
 
@@ -86,6 +97,15 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
    ```
 
 ### Mouse & Keyboard Controls
+
+#### Mouse + Keyboard Combinations
+| Keys | Function |
+|------|----------|
+| Left Click + Drag | rotate the Scene |
+| M + Right Click + Drag | draw a box to add one control region |
+| K + Right Click + Drag | draw a box to set the ...|
+| B + Left Click + Drag | drag to deform |
+
 
 #### Keyboard Operations
 | Key | Function |
@@ -99,27 +119,25 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 | J |  |
 | C |  |
 | U |  |
-| V |  |
+| V | switch the deform opertion type (bending/twisting/scaling) |
 | X |  |
 | T | clean the selected control regions |
 | R | reset |
 | F1 | take a snapshot (of Gaussians and sampled radiance field) |
 | F2 | load a snapshot (with the index shown in ...) |
-| <- |  |
-| -> |  |
+| <- | load the previous snapshot |
+| -> | load the next snapshot |
 | F6 | optimize gaussians to align them with the radiance field |
 
 
-#### Mouse + Keyboard Combinations
-| Keys | Function |
-|------|----------|
-| Left Click + Drag | rotate the Scene |
-| M + Right Click + Drag | draw a box to add one control region |
-| K + Right Click + Drag | draw a box to set the ...|
-| B + Left Click + Drag | drag to deform |
 
 #### Control Region Explaination
 
+```bash
+green - 
+yellow - 
+red - 
+```
 
 
 
@@ -139,8 +157,9 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 
 
 ## TODO
+We will release the whole datasets (including .blend files and ground-truth images) soon. 
 
-Currently, this project supports ARAP deformation of radiance fields under the flat-Gaussian representation proposed in the paper *GaMeS: Mesh-Based Adapting and Modification of Gaussian Splatting*. We will provide detailed usage instructions as soon as possible.
+Currently, this project also supports ARAP deformation of radiance fields under the flat-Gaussian representation proposed in the paper *GaMeS: Mesh-Based Adapting and Modification of Gaussian Splatting*. We will provide detailed usage instructions as soon as possible.
 
 ## Acknowledgments
 
