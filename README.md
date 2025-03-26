@@ -100,35 +100,35 @@ Rebuild the Gaussian radiance field of your customized scene using the [3DGS](ht
    ```
 
 ### Mouse & Keyboard Controls
-The following is an introduction to the new features related to Gaussian radiance field deformation, built on the visualization tools of the [3DGS](https://github.com/graphdeco-inria/gaussian-splatting) and [SIBR](https://sibr.gitlabpages.inria.fr/) projects, with the most common ones highlighted in red. 
+The following is an introduction to the new features related to Gaussian radiance field deformation, built on the visualization tools of the [3DGS](https://github.com/graphdeco-inria/gaussian-splatting) and [SIBR](https://sibr.gitlabpages.inria.fr/) projects, with the most common ones highlighted. 
 
 #### Mouse + Keyboard Combinations
 | Keys | Function |
 |------|----------|
-| <span style="color:red">M + Right Click + Drag</span> | draw a box to add one control region |
+| **M + Right Click + Drag** | draw a box to add one control region |
 | K + Right Click + Drag | draw a box to set the ...|
-| <span style="color:red">B + Left Click + Drag</span> | drag to deform |
+| **B + Left Click + Drag** | drag to deform |
 
 
 #### Keyboard Operations
 | Key | Function |
 |-----|----------|
-| <span style="color:red">N</span> |  |
-| <span style="color:red">J</span> |  |
-| <span style="color:red">C</span> |  |
+| **N** |  |
+| **J** |  |
+| **C** |  |
 | U |  |
-| <span style="color:red">V</span> | switch the deform opertion type (bending/twisting/scaling) |
+| **V** | switch the deform opertion type (bending/twisting/scaling) |
 | X |  |
 | T | clean the selected control regions |
-| <span style="color:red">R</span> | reset |
+| **R** | reset |
 | F1 | take a snapshot (of Gaussians and sampled radiance field) |
 | F2 | load a snapshot (with the index shown in ...) |
 | <- | load the previous snapshot |
 | -> | load the next snapshot |
-| <span style="color:red">F6</span> | optimize gaussians to align them with the radiance field |
+| **F6** | optimize gaussians to align them with the radiance field |
 | F | show/hide Gaussian radiance field |
-| <span style="color:red">G</span> | show/hide Graph |
-| <span style="color:red">H</span> | show/hide highlights for control region |
+| **G** | show/hide Graph |
+| **H** | show/hide highlights for control region |
 | F4 | show/hide the samples of radiance field |
 | F8 | switch between aim/current samples of radiance field |
 
@@ -136,12 +136,12 @@ The following is an introduction to the new features related to Gaussian radianc
 #### Button Operations
 | Button | Function |
 |-----|----------|
-| <span style="color:red">Load mesh for graph</span> |  |
-| <span style="color:red">Rebuild deform graph</span> |  |
+| **Load mesh for graph** |  |
+| **Rebuild deform graph** |  |
 | Set new knn |  |
-| <span style="color:red">Record deformation</span> |  |
-| <span style="color:red">Load deformation</span> |  |
-| <span style="color:red">Run deformation</span> |  |
+| **Record deformation** |  |
+| **Load deformation** |  |
+| **Run deformation** |  |
 | Clean deformation |  |
 | Load deform scriptX |  |
 | Run deform script |  |
