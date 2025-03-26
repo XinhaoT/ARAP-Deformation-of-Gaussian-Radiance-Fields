@@ -595,8 +595,8 @@ namespace sibr {
 
 		int deform_mode = 0;
 
-		int knn_k = 12;
-		int new_knn_k = 12;
+		int knn_k = 10;
+		int new_knn_k = 10;
 
 		DeformScript deform_script;
 

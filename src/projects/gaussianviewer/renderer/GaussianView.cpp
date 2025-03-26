@@ -462,36 +462,28 @@ void sibr::GaussianView::init(const sibr::BasicIBRScene::Ptr & ibrScene, uint re
 
 	std::vector<int> configs;
 	if (! std::filesystem::exists(configfile)) {
-		configs.push_back(_estimated_coeff);
-		configs.push_back(_estimated_const);
-		configs.push_back(padding);
 		configs.push_back(grid_num);
 		configs.push_back(is_synthetic);
 		configs.push_back(has_soup);
-		configs.push_back(has_simplified);
 		storeVectorToFile(configs, configfile);
 	}
 	else {
 		configs = loadVectorFromFile(configfile);
-		_estimated_coeff = configs[0];
-		_estimated_const = configs[1];
-		padding = configs[2];
-		grid_num = configs[3];
-		is_synthetic = configs[4];
-		int conf_5 = configs[5];
-		if (conf_5 == 0){
+		grid_num = configs[0];
+		is_synthetic = configs[1];
+		int conf_2 = configs[2];
+		if (conf_2 == 0){
 			has_soup = 0;
 			high_quality = false;
 		}
-		else if(conf_5 == 1){
+		else if(conf_2 == 1){
 			has_soup = 1;
 			high_quality = true;
 		} 
-		else if(conf_5 == 2){
+		else if(conf_2 == 2){
 			has_soup = 0;
 			high_quality = true;
 		} 
-		has_simplified = configs[6];
 	}
 
 	std::cout << "high_quality: " << high_quality << std::endl;
@@ -685,18 +677,6 @@ void sibr::GaussianView::init(const sibr::BasicIBRScene::Ptr & ibrScene, uint re
 			mesh_vertices[i].index = i;
 		}
 
-		if (has_simplified){
-			std::string simplifiedfile(file);
-			simplifiedfile.replace(simplifiedfile.length() - 4, 4, "_simplified.obj");
-			LoadMeshPoints(simplifiedfile, simplified_points);
-			LoadMeshPoints(simplifiedfile, simplified_points_backup);
-			simplified_vertices.resize(simplified_points.size());
-			std::cout << "Size of simplified_points: " << simplified_points.size() << std::endl;
-			for (unsigned int i = 0; i < simplified_points.size(); i++){
-				simplified_vertices[i].index = i;
-			}
-		}
-
 		if (has_soup){
 			std::string soupfile(file);
 			soupfile.replace(soupfile.length() - 4, 4, "_soup.obj");
@@ -766,9 +746,6 @@ void sibr::GaussianView::init(const sibr::BasicIBRScene::Ptr & ibrScene, uint re
 
 	CUDA_SAFE_CALL_ALWAYS(cudaMalloc((void**)&q_vector_cuda, sizeof(Eigen::Quaternionf) * nodes.size()));
 
-	// For test
-	_estimated_coeff = 256;
-	_estimated_const = 200;
 
 
 	sps = SamplePoints(sps_vec);
@@ -1711,9 +1688,6 @@ void sibr::GaussianView::onUpdate(Input & input, const Viewport & vp)
 			getSamplesMesh();
 		}
 	}
-	if (input.key().isReleased(sibr::Key::F5)){
-		flag_test_scale = !flag_test_scale;
-	}
 
 	if (input.key().isReleased(sibr::Key::F7)){
 		flag_clip_containing = !flag_clip_containing;
@@ -2250,16 +2224,6 @@ void sibr::GaussianView::onGUI()
 
 	ImGui::SliderFloat("ALPHA Cutoff Display", &_show_alpha_cutoff, 0.0f, 0.99f);
 	ImGui::Checkbox("Enable Alpha", &_enable_alpha);
-	if (ImGui::Button("Store Configs")){
-		std::vector<int> configs;
-		configs.push_back(_estimated_coeff);
-		configs.push_back(_estimated_const);
-		configs.push_back(padding);
-		configs.push_back(grid_num);
-		configs.push_back(is_synthetic);
-		configs.push_back(has_soup);
-		storeVectorToFile(configs, configfile);
-	}
 	ImGui::End();
 
 

@@ -54,27 +54,26 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 |   |   |---graph.obj (optional)
 |   |   |---deform.txt (optional)
 |---cfg_args
-|---transforms_train.json
+|---transforms_test.json
 ```
 
 ### File Descriptions
-*point_cloud.ply*, *cfg_args*, and *transforms_train.json* 
+*point_cloud.ply*, *cfg_args*, and *transforms_test.json* 
 
 
-```bash
+
 ---point_cloud_config.txt
+```bash
 
 ```
 
-```bash
+
 ---graph.obj
 
-```
 
-```bash
+
 ---deform.txt
 
-```
 
 ### Creating Your Own Data
 
@@ -83,29 +82,43 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 
 ### Launching the Interactive System
    ```bash
-   ./install/bin/SIBR_gaussianViewer_app -m path_to_your_dataset
+   ./install/bin/SIBR_gaussianViewer_app -m <path_to_your_dataset>
    ```
 
 ### Mouse & Keyboard Controls
 
-#### Basic Operations
+#### Keyboard Operations
 | Key | Function |
 |-----|----------|
-| W | Move forward |
-| A | Move left |
-| S | Move backward |
-| D | Move right |
-| Space | Jump |
-| Shift | Sprint |
-| Esc | Exit / Cancel |
+| F | show/hide Gaussian radiance field |
+| G | show/hide Graph |
+| H | show/hide highlights for control region |
+| F4 | show/hide the samples of radiance field |
+| F8 | switch between aim/current samples of radiance field |
+| N |  |
+| J |  |
+| C |  |
+| U |  |
+| V |  |
+| X |  |
+| T | clean the selected control regions |
+| R | reset |
+| F1 | take a snapshot (of Gaussians and sampled radiance field) |
+| F2 | load a snapshot (with the index shown in ...) |
+| <- |  |
+| -> |  |
+| F6 | optimize gaussians to align them with the radiance field |
 
 
 #### Mouse + Keyboard Combinations
 | Keys | Function |
 |------|----------|
-| Alt + Right Click + Drag | Rotate around a point |
-| Shift + Right Click + Drag | Fine-tune rotation |
-| Ctrl + Middle Click + Drag | Precise panning |
+| Left Click + Drag | rotate the Scene |
+| M + Right Click + Drag | draw a box to add one control region |
+| K + Right Click + Drag | draw a box to set the ...|
+| B + Left Click + Drag | drag to deform |
+
+#### Control Region Explaination
 
 
 
@@ -117,6 +130,12 @@ OMP_NUM_THREADS=16 ./install/bin/SIBR_gaussianViewer_app -m datasets/stripes/
 #### Stage II Align 3DGS with Radiance Field
 
 ### Saving and Reproducing the Deformation Process
+
+#### Case I:
+
+#### Case II:
+
+#### Case III:
 
 
 ## TODO

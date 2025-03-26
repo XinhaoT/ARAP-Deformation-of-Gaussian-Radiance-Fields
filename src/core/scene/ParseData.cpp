@@ -472,7 +472,7 @@ namespace sibr {
 		std::string meshroom = myArgs.dataset_path.get() + "/../../StructureFromMotion/";
 		std::string meshroom_sibr = myArgs.dataset_path.get() + "/StructureFromMotion/";
 		std::string chunked = myArgs.dataset_path.get() + "/chunk.dat";
-		std::string blender = myArgs.dataset_path.get() + "/transforms_train.json";
+		std::string blender = myArgs.dataset_path.get() + "/transforms_test.json";
 		std::string gaussian = myArgs.dataset_path.get() + "/cameras.json";
 
 		if(datasetTypeStr == "sibr") {
