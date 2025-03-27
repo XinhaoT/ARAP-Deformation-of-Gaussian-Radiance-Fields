@@ -2,7 +2,7 @@
 
 ## Description
 
-This is an implementation of the paper *ARAP-Deformation-of-Gaussian-Radiance-Fields*. It includes an interactive system that allows users to perform ARAP deformation on Gaussian Radiance Fields interactively.
+This is an implementation of the paper *As-Rigid-As-Possible Deformation of Gaussian Radiance Fields*. It includes an interactive system that allows users to perform ARAP deformation on Gaussian Radiance Fields interactively.
 
 ## Installation
 
