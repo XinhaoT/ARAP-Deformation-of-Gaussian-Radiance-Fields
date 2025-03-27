@@ -145,16 +145,16 @@ red - excluded region： the region does not participate in the deformation at a
 #### Button Operations
 | Button | Function |
 |-----|----------|
-| **Load mesh for graph** | load a mesh from an .obj file as the graph structure for deformation |
-| **Rebuild deform graph** | reconstruct the graph structure based on the given number of control nodes |
-| Set new knn | set the k for KNN with given number |
-| **Record deformation** | record all deformation processes and save them as a file |
-| **Load deformation** | read a deformation process file |
-| **Run deformation** | run the read deformation process |
-| Clean deformation | clear the existing deformation operations |
-| Load deform script[X] | read the specified deformation operation script |
-| Run deform script | run the deformation operation script |
-| Clear Snapshots | clear all the snapshots |
+| **`Load Mesh for Graph`** | load a mesh from an .obj file as the graph structure for deformation |
+| **`Rebuild Deform Graph`** | reconstruct the graph structure based on the given number of control nodes |
+| `Set new knn` | set the k for KNN with given number |
+| **`Record Deformation`** | record all deformation processes and save them as a file |
+| **`Load Deformation`** | read a deformation process file |
+| **`Run Deformation`** | run the read deformation process |
+| `Clean Deformation` | clear the existing deformation operations |
+| `Load Deform Script[X]` | read the specified deformation operation script |
+| `Run Deform Script` | run the deformation operation script |
+| `Clear Snapshots` | clear all the snapshots |
 
 
 
@@ -169,14 +169,37 @@ red - excluded region： the region does not participate in the deformation at a
 4. Press `F6` to optimize the Gaussians to align them with the radiance field. 
 
 ### Saving and Reproducing the Deformation Process
+After deformation, click the `Record Deformation` button to store the geometry deformation process.
 
-#### Case I: 
+#### Case I: Load the Stored Deformation Process
+Reproduce the deformation process from the *pinocchio* example in the paper:
+1. Set k value of KNN to 8.
+2. Click the `Load Deformation` button to load the *deform.txt*
+3. Click the `Run Deformation` button to perform geometrical deformation in Stage I
+4. Press `F6` to optimize the Gaussians to align them with the radiance field 
 
-#### Case II:
+#### Case II: Load the Deformation from Scipt (code)
+Reproduce the deformation process from the *stripe* example in the paper:
+1. Click the `Load Mesh for Graph` button, and load the *graph.obj*
+2. Enable the `Build Graph on Mesh` box
+3. Click the `Rebuild Deform Graph` button
+2. Click the `Load Deform Script0` button
+3. Click the `Run Deform Script` button
+4. Press `F6` to optimize the Gaussians to align them with the radiance field
 
-#### Case III:
+#### Case III: Load the Stored Deformation Process with Given Graph
+1. Click the `Load Mesh for Graph` button, and load the *graph.obj*
+2. Enable the `Build Graph on Mesh` box
+3. Click the `Rebuild Deform Graph` button 
+2. Click the `Load Deformation w/o Rebuild` button to load the *deform.txt*
+3. Click the `Run Deformation` button to perform geometrical deformation in Stage I
+4. Press `F6` to optimize the Gaussians to align them with the radiance field 
 
-#### Note
+#### Case IV: Combo Deformation
+Users can achieve the complex composite deformations in the supplementary materials of the paper by combining the above deformation methods with customized drag-based deformation.
+
+#### NOTE
+The k value in KNN is not stored in the deformation record file or the given deformation scripts. Note that different k values will result in different deformation outcomes. To reproduce the exact deformation process, ensure consistency in the k value.
 
 
 ## TODO
