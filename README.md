@@ -175,7 +175,7 @@ After deformation, click the `Record Deformation` button to store the geometry d
 Reproduce the deformation process from the *pinocchio* example in the paper:
 1. Set k value of KNN to 8.
 2. Click the `Load Deformation` button to load the *deform.txt*
-3. Click the `Run Deformation` button to perform geometrical deformation in Stage I
+3. Click the `Run Deformation` button to perform geometrical deformation in Stage I, press `H` to hide the highlights for control regions
 4. Press `F6` to optimize the Gaussians to align them with the radiance field 
 
 #### Case II: Load the Deformation from Scipt (code)
@@ -184,7 +184,7 @@ Reproduce the deformation process from the *stripe* example in the paper:
 2. Enable the `Build Graph on Mesh` box
 3. Click the `Rebuild Deform Graph` button
 2. Click the `Load Deform Script0` button
-3. Click the `Run Deform Script` button
+3. Click the `Run Deform Script` button, press `H` to hide the highlights for control regions
 4. Press `F6` to optimize the Gaussians to align them with the radiance field
 
 #### Case III: Load the Stored Deformation Process with Given Graph
@@ -192,7 +192,7 @@ Reproduce the deformation process from the *stripe* example in the paper:
 2. Enable the `Build Graph on Mesh` box
 3. Click the `Rebuild Deform Graph` button 
 2. Click the `Load Deformation w/o Rebuild` button to load the *deform.txt*
-3. Click the `Run Deformation` button to perform geometrical deformation in Stage I
+3. Click the `Run Deformation` button to perform geometrical deformation in Stage I, press `H` to hide the highlights for control regions
 4. Press `F6` to optimize the Gaussians to align them with the radiance field 
 
 #### Case IV: Combo Deformation
