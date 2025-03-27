@@ -102,66 +102,71 @@ Rebuild the Gaussian radiance field of your customized scene using the [3DGS](ht
 ### Mouse & Keyboard Controls
 The following is an introduction to the new features related to Gaussian radiance field deformation, built on the visualization tools of the [3DGS](https://github.com/graphdeco-inria/gaussian-splatting) and [SIBR](https://sibr.gitlabpages.inria.fr/) projects, with the most common ones highlighted. 
 
+#### Control Region Types Explaination
+During deformation, three types of control regions are highlighted in different colors:
+
+```bash
+green - active region: the region's target position is moved by mouse dragging
+yellow - pinned region： the region is intended to remain fixed at its original position during deformation
+red - excluded region： the region does not participate in the deformation at all 
+```
+
 #### Mouse + Keyboard Combinations
 | Keys | Function |
 |------|----------|
-| **M + Right Click + Drag** | draw a box to add one control region |
-| K + Right Click + Drag | draw a box to set the ...|
-| **B + Left Click + Drag** | drag to deform |
+| **`M` + Right Click + Drag** | drag to draw a box to add a control region |
+| `K` + Right Click + Drag | drag to draw a box to set the selected control region as the active region |
+| **`B` + Left Click + Drag** | drag to deform, moving the target position of the active region with the mouse |
 
 
 #### Keyboard Operations
 | Key | Function |
 |-----|----------|
-| **N** |  |
-| **J** |  |
-| **C** |  |
-| U |  |
-| **V** | switch the deform opertion type (bending/twisting/scaling) |
-| X |  |
-| T | clean the selected control regions |
-| **R** | reset |
-| F1 | take a snapshot (of Gaussians and sampled radiance field) |
-| F2 | load a snapshot (with the index shown in ...) |
-| <- | load the previous snapshot |
-| -> | load the next snapshot |
-| **F6** | optimize gaussians to align them with the radiance field |
-| F | show/hide Gaussian radiance field |
-| **G** | show/hide Graph |
-| **H** | show/hide highlights for control region |
-| F4 | show/hide the samples of radiance field |
-| F8 | switch between aim/current samples of radiance field |
+| **`N`** | switch the active region |
+| **`J`** | set the current active region as excluded region |
+| **`C`** | delete the current active region |
+| `U` | set the current active as pinned region |
+| **`V`** | switch the deform opertion type (bending/twisting/scaling) |
+| `X` | change the target type to maintain during deformation: individual control nodes or the center of control nodes within each control region |
+| `T` | clean the selected control regions |
+| **`R`** | reset |
+| `F1` | take a snapshot (of Gaussians and sampled radiance field) |
+| `F2` | load a snapshot (with the index shown in Box `Load Snapshot`) |
+| `<-` | load the previous snapshot |
+| `->` | load the next snapshot |
+| **`F6`** | optimize gaussians to align them with the radiance field (During optimization, the results at specified steps are saved as snapshots, which can be reviewed and compared using the `<-` and `->` keys) |
+| `F` | show/hide Gaussian radiance field |
+| **`G`** | show/hide Graph |
+| **`H`** | show/hide highlights for control region |
+| `F4` | show/hide the samples of radiance field |
+| `F8` | switch between aim/current samples of radiance field |
 
 
 #### Button Operations
 | Button | Function |
 |-----|----------|
-| **Load mesh for graph** |  |
-| **Rebuild deform graph** |  |
-| Set new knn |  |
-| **Record deformation** |  |
-| **Load deformation** |  |
-| **Run deformation** |  |
-| Clean deformation |  |
-| Load deform scriptX |  |
-| Run deform script |  |
-| Clear Snapshots |  |
-
-#### Control Region Explaination
-
-```bash
-green - 
-yellow - 
-red - 
-```
+| **Load mesh for graph** | load a mesh from an .obj file as the graph structure for deformation |
+| **Rebuild deform graph** | reconstruct the graph structure based on the given number of control nodes |
+| Set new knn | set the k for KNN with given number |
+| **Record deformation** | record all deformation processes and save them as a file |
+| **Load deformation** | read a deformation process file |
+| **Run deformation** | run the read deformation process |
+| Clean deformation | clear the existing deformation operations |
+| Load deform script[X] | read the specified deformation operation script |
+| Run deform script | run the deformation operation script |
+| Clear Snapshots | clear all the snapshots |
 
 
 
 ### A Simple Example: Performing ARAP Deformation
 
 #### Stage I Geometrical Deformation of Gaussians
+1. Press `M` + Right Click + Drag. Do this operation mutiple times to select all the control regions you want.
+2. Press `N` and `J` to choose the active region and the excluded region.
+3. Press `B` + Left Click + Drag. Perform the customized deformation.
 
 #### Stage II Align 3DGS with Radiance Field
+4. Press `F6` to optimize the Gaussians to align them with the radiance field. 
 
 ### Saving and Reproducing the Deformation Process
 
