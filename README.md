@@ -218,13 +218,13 @@ We would like to acknowledge [3DGS](https://github.com/graphdeco-inria/gaussian-
 ```bibtex
 
 @ARTICLE{Tong2025arapGaussian,
-author={Tong, Xinhao and Shao, Tianjia and Weng, Yanlin and Yang, Yin and Zhou, Kun},
-journal={ IEEE Transactions on Visualization \& Computer Graphics },
-title={{ As-Rigid-As-Possible Deformation of Gaussian Radiance Fields }},
-year={2025},
-doi={10.1109/TVCG.2025.3555404},
-url = {https://doi.ieeecomputersociety.org/10.1109/TVCG.2025.3555404},
-month=mar}
+   author={Tong, Xinhao and Shao, Tianjia and Weng, Yanlin and Yang, Yin and Zhou, Kun},
+   journal={ IEEE Transactions on Visualization \& Computer Graphics },
+   title={{ As-Rigid-As-Possible Deformation of Gaussian Radiance Fields }},
+   year={2025},
+   doi={10.1109/TVCG.2025.3555404},
+   url = {https://doi.ieeecomputersociety.org/10.1109/TVCG.2025.3555404},
+}
 
 @Article{kerbl3Dgaussians,
   author       = {Kerbl, Bernhard and Kopanas, Georgios and Leimk{"u}hler, Thomas and Drettakis, George},
