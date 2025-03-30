@@ -222,13 +222,8 @@ author={Tong, Xinhao and Shao, Tianjia and Weng, Yanlin and Yang, Yin and Zhou, 
 journal={ IEEE Transactions on Visualization \& Computer Graphics },
 title={{ As-Rigid-As-Possible Deformation of Gaussian Radiance Fields }},
 year={2025},
-number={01},
-ISSN={1941-0506},
-pages={1-13},
 doi={10.1109/TVCG.2025.3555404},
 url = {https://doi.ieeecomputersociety.org/10.1109/TVCG.2025.3555404},
-publisher={IEEE Computer Society},
-address={Los Alamitos, CA, USA},
 month=mar}
 
 @Article{kerbl3Dgaussians,
