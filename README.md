@@ -107,7 +107,9 @@ During deformation, three types of control regions are highlighted in different 
 
 
 green - active region: the target position of the active region is moved by mouse dragging
+
 yellow - pinned region： the region is intended to remain fixed at its original position during deformation
+
 red - excluded region： the region does not participate in the deformation at all 
 
 
