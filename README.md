@@ -2,7 +2,7 @@
 
 ## Description
 
-This is an implementation of the paper *As-Rigid-As-Possible Deformation of Gaussian Radiance Fields* [[paper]](https://doi.ieeecomputersociety.org/10.1109/TVCG.2025.3555404). It includes an interactive system that allows users to perform ARAP deformation on Gaussian Radiance Fields interactively.
+This is an official implementation of the paper *As-Rigid-As-Possible Deformation of Gaussian Radiance Fields* (TVCG 2025) [[paper]](https://doi.ieeecomputersociety.org/10.1109/TVCG.2025.3555404). It includes an interactive system that allows users to perform ARAP deformation on Gaussian Radiance Fields interactively.
 
 ## Installation
 
@@ -205,11 +205,7 @@ The k value in KNN is not stored in the deformation record file or the given def
 
 
 ## TODO
-We will release the datasets presented in the paper (including .blend files and ground-truth images) soon. 
-
 We will upload our video of this interactive system soon.
-
-Currently, this project also supports ARAP deformation of radiance fields under the flat-Gaussian representation proposed in the paper *GaMeS: Mesh-Based Adapting and Modification of Gaussian Splatting*. We will provide detailed usage instructions as soon as possible.
 
 ## Acknowledgments
 
