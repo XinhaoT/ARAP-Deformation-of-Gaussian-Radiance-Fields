@@ -203,6 +203,8 @@ Users can achieve the complex composite deformations in the supplementary materi
 #### NOTE
 The k value in KNN is not stored in the deformation record file or the given deformation scripts. Note that different k values will result in different deformation outcomes. To reproduce the exact deformation process, ensure consistency in the k value.
 
+Our algorithm performs object-level deformation, so objects in the scene need to be segmented in advance into deformable objects and background Gaussians. Outlier Gaussians that are extremely far from the object can affect the program's estimation of the object's bounding box. These outliers should be removed. You can press `F4` to visualize the distribution of sampling points and check whether such cases occur.
+
 
 ## TODO
 We will upload our video of this interactive system soon.
