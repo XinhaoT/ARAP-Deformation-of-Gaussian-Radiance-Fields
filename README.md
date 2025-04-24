@@ -209,6 +209,8 @@ Our algorithm performs object-level deformation, so objects in the scene need to
 ## TODO
 We will upload our video of this interactive system soon.
 
+We will release the datasets presented in the paper (including .blend files and ground-truth images) soon. 
+
 ## Acknowledgments
 
 We would like to acknowledge [3DGS](https://github.com/graphdeco-inria/gaussian-splatting) and [SIBR](https://sibr.gitlabpages.inria.fr/) as we have used parts of their codebase in our project.
