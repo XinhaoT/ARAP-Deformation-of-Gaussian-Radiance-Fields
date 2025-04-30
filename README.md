@@ -166,18 +166,18 @@ red - excluded region： the region does not participate in the deformation at a
 1. Press `M` + Right Click + Drag. Do this operation mutiple times to select all the control regions you want.
 2. Press `N` and `J` to choose the active region and the excluded region.
 3. Press `B` + Left Click + Drag. Perform the customized deformation.
+(optional) After deformation, click the `Record Deformation` button to store the geometry deformation process.
 
 #### Stage II Align 3DGS with Radiance Field
 4. Press `F6` to optimize the Gaussians to align them with the radiance field. 
 
-### Saving and Reproducing the Deformation Process
-After deformation, click the `Record Deformation` button to store the geometry deformation process.
+### Reproducing the Deformation Process
 
 #### Case I: Load the Stored Deformation Process
-Reproduce the deformation process from the *pinocchio* example in the paper:
+Reproduce the deformation process from the *pinocchio*, *bunny* and *glove* example in the paper:
 1. Set k value of KNN to 8.
 2. Click the `Load Deformation` button to load the *deform.txt*
-3. Click the `Run Deformation` button to perform geometrical deformation in Stage I, press `H` to hide the highlights for control regions
+3. Click the `Run the input Deformation` button to perform geometrical deformation in Stage I, press `H` to hide the highlights for control regions
 4. Press `F6` to optimize the Gaussians to align them with the radiance field 
 
 #### Case II: Load the Deformation from Scipt (code)
@@ -185,20 +185,28 @@ Reproduce the deformation process from the *stripe* example in the paper:
 1. Click the `Load Mesh for Graph` button, and load the *graph.obj*
 2. Enable the `Build Graph on Mesh` box
 3. Click the `Rebuild Deform Graph` button
-2. Click the `Load Deform Script0` button
-3. Click the `Run Deform Script` button, press `H` to hide the highlights for control regions
-4. Press `F6` to optimize the Gaussians to align them with the radiance field
+4. Click the `Load Deform Script0` button
+5. Click the `Run Deform Script` button, press `H` to hide the highlights for control regions
+6. Press `F6` to optimize the Gaussians to align them with the radiance field
 
 #### Case III: Load the Stored Deformation Process with Given Graph
-1. Click the `Load Mesh for Graph` button, and load the *graph.obj*
-2. Enable the `Build Graph on Mesh` box
-3. Click the `Rebuild Deform Graph` button 
-2. Click the `Load Deformation w/o Rebuild` button to load the *deform.txt*
-3. Click the `Run Deformation` button to perform geometrical deformation in Stage I, press `H` to hide the highlights for control regions
-4. Press `F6` to optimize the Gaussians to align them with the radiance field 
+Reproduce the deformation process from the *ship* and *hotdog* example in the paper:
+1. Set k value of KNN to 8.
+2. Click the `Load Mesh for Graph` button, and load the *graph.obj*
+3. Enable the `Build Graph on Mesh` box
+4. Click the `Rebuild Deform Graph` button 
+5. Click the `Load Deformation w/o Rebuild` button to load the *deform.txt*
+6. Click the `Run the input Deformation` button to perform geometrical deformation in Stage I, press `H` to hide the highlights for control regions
+7. Press `F6` to optimize the Gaussians to align them with the radiance field 
 
 #### Case IV: Combo Deformation
 Users can achieve the complex composite deformations in the supplementary materials of the paper by combining the above deformation methods with customized drag-based deformation.
+
+### Dataset Download
+
+All synthetic datasets and their corresponding deformation files presented in the paper can be downloaded from this [repository](https://drive.google.com/file/d/1Ve77YDWf80SLmBxJ8uZpBeTqH3xO7huk/view?usp=drive_link). Ground truth images from the test views are also included.
+
+All experiments can be run on a single 8GB GPU, except for the "ship" dataset in high quality mode. The interactive performance reported in the paper was measured on a single RTX 4090 GPU (24GB).
 
 ## NOTE
 The k value in KNN is not stored in the deformation record file or the given deformation scripts. Note that different k values will result in different deformation outcomes. To reproduce the exact deformation process, ensure consistency in the k value.
@@ -209,7 +217,7 @@ Our algorithm performs object-level deformation, so objects in the scene need to
 ## TODO
 We will upload our video of this interactive system soon.
 
-We will release the datasets presented in the paper (including .ply files, deformation files and ground-truth images for test views) soon (before May 1st).
+~~We will release the datasets presented in the paper (including .ply files, deformation files and ground-truth images for test views) soon (before May 1st).~~
 
 ## Acknowledgments
 
