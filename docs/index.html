@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Project page for As-Rigid-As-Possible Deformation of Gaussian Radiance Fields, published in IEEE TVCG 2025."
+    >
+    <meta name="theme-color" content="#f6f8fc">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="As-Rigid-As-Possible Deformation of Gaussian Radiance Fields">
+    <meta
+      property="og:description"
+      content="Interactive, high-quality ARAP deformation for Gaussian radiance fields."
+    >
+    <meta
+      property="og:url"
+      content="https://xinhaot.github.io/ARAP-Deformation-of-Gaussian-Radiance-Fields/"
+    >
+    <meta
+      property="og:image"
+      content="https://xinhaot.github.io/ARAP-Deformation-of-Gaussian-Radiance-Fields/assets/images/og.jpg"
+    >
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta
+      property="og:image:alt"
+      content="Pinocchio deformation comparison between the geometry-only baseline and our radiance-field-aware result."
+    >
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="As-Rigid-As-Possible Deformation of Gaussian Radiance Fields">
+    <meta
+      name="twitter:description"
+      content="Interactive, high-quality ARAP deformation for Gaussian radiance fields."
+    >
+    <meta
+      name="twitter:image"
+      content="https://xinhaot.github.io/ARAP-Deformation-of-Gaussian-Radiance-Fields/assets/images/og.jpg"
+    >
+    <meta
+      name="twitter:image:alt"
+      content="Pinocchio deformation comparison between the geometry-only baseline and our radiance-field-aware result."
+    >
+    <link
+      rel="canonical"
+      href="https://xinhaot.github.io/ARAP-Deformation-of-Gaussian-Radiance-Fields/"
+    >
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="stylesheet" href="./styles.css">
+    <title>ARAP Deformation of Gaussian Radiance Fields</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#abstract">Skip to content</a>
+    <main>
+      <header class="hero" aria-labelledby="paper-title">
+        <p class="venue">IEEE Transactions on Visualization and Computer Graphics · 2025</p>
+        <h1 id="paper-title">As-Rigid-As-Possible Deformation of Gaussian Radiance Fields</h1>
+        <ul class="authors" aria-label="Authors">
+          <li>Xinhao Tong<sup>1</sup></li>
+          <li><a href="https://tianjiashao.github.io/" target="_blank" rel="noopener noreferrer">Tianjia Shao</a><sup>1</sup></li>
+          <li>Yanlin Weng<sup>1</sup></li>
+          <li><a href="https://yangzzzy.github.io/" target="_blank" rel="noopener noreferrer">Yin Yang</a><sup>2</sup></li>
+          <li><a href="https://person.zju.edu.cn/en/kunzhou" target="_blank" rel="noopener noreferrer">Kun Zhou</a><sup>1</sup></li>
+        </ul>
+        <ul class="affiliations" aria-label="Author affiliations">
+          <li><sup>1</sup> State Key Lab of CAD&amp;CG, Zhejiang University, Hangzhou 310058, China</li>
+          <li><sup>2</sup> Kahlert School of Computing, University of Utah, USA</li>
+        </ul>
+        <nav class="resource-links" aria-label="Project resources">
+          <a class="button button-primary" href="https://ieeexplore.ieee.org/document/10944432" target="_blank" rel="noopener noreferrer">Paper</a>
+          <a class="button" href="https://github.com/XinhaoT/ARAP-Deformation-of-Gaussian-Radiance-Fields" target="_blank" rel="noopener noreferrer">Code</a>
+          <a class="button" href="#video">Video</a>
+        </nav>
+      </header>
+
+      <figure class="teaser media-frame">
+        <img
+          src="./assets/images/teaser-pinocchio.webp"
+          width="2400"
+          height="800"
+          alt="Pinocchio deformation comparison showing the input, geometry-only baseline, and the sharper result produced by our method."
+          fetchpriority="high"
+        >
+        <figcaption>
+          Our radiance-field-aware optimization removes stretching artifacts caused by geometry-only Gaussian deformation.
+        </figcaption>
+      </figure>
+
+      <section class="section section-grid" id="abstract" aria-labelledby="abstract-title">
+        <div class="section-heading">
+          <p class="eyebrow">Overview</p>
+          <h2 id="abstract-title">Abstract</h2>
+        </div>
+        <div class="section-content prose">
+          <p class="paper-abstract">
+            3D Gaussian Splatting (3DGS) models radiance fields as sparsely distributed 3D Gaussians, providing a compelling solution to novel view synthesis at high resolutions and real-time frame rates. However, deforming objects represented by 3D Gaussians remains a challenging task. Existing methods deform a 3DGS object by editing Gaussians geometrically. These approaches ignore the fact that it is the radiance field that rasterizes and renders the final image. The inconsistency between the deformed 3D Gaussians and the desired radiance field inevitably leads to artifacts in the final results. In this paper, we propose an interactive method for as-rigid-as-possible (ARAP) deformation of the Gaussian radiance fields. Specifically, after performing geometric edits on the Gaussians, we further optimize Gaussians to ensure its rasterization yields a similar result as the deformed radiance field. To facilitate this objective, we design radial features to mathematically describe the radial difference before and after the deformation, which are densely sampled across the radiance field. Additionally, we propose an adaptive anisotropic spatial low-pass filter to prevent aliasing issues during sampling and to preserve the field with the varying non-uniform sampling intervals. Users can interactively employ this tool to achieve large-scale ARAP deformations of the radiance field. Since our method maintains the consistency of the Gaussian radiance field before and after deformation, it avoids artifacts that are common in existing 3DGS deformation frameworks. Meanwhile, our method keeps the high quality and efficiency of 3DGS in rendering.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="video" aria-labelledby="video-title">
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">Interactive results</p>
+            <h2 id="video-title">Supplementary Video</h2>
+          </div>
+          <p>
+            The full 5:30 video presents the two-stage method, interactive edits, novel-view results, comparisons, and ablations.
+          </p>
+        </div>
+        <div class="video-frame media-frame">
+          <video
+            controls
+            playsinline
+            preload="metadata"
+            poster="./assets/video/poster.jpg"
+            aria-label="Supplementary video for ARAP deformation of Gaussian radiance fields"
+          >
+            <source src="./assets/video/supplementary.mp4" type="video/mp4">
+            Your browser does not support embedded video. You can
+            <a href="./assets/video/supplementary.mp4">download the MP4 file</a> instead.
+          </video>
+        </div>
+        <p class="media-note">
+          5 min 30 sec · H.264 MP4 ·
+          <a href="./assets/files/supplementary.pdf">Read the supplementary material</a>
+        </p>
+      </section>
+
+      <section class="section" id="method" aria-labelledby="method-title">
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">Approach</p>
+            <h2 id="method-title">Method</h2>
+          </div>
+          <p>
+            A geometric edit provides the desired deformation; a second optimization stage restores consistency between the Gaussians and the deformed radiance field.
+          </p>
+        </div>
+
+        <div class="method-steps">
+          <article>
+            <span>01</span>
+            <h3>Geometrical deformation</h3>
+            <p>An embedded deformation graph applies the user's ARAP edit to Gaussian positions, rotations, and scales.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Radiance-field alignment</h3>
+            <p>Sampled radial features guide Gaussian optimization, with adaptive filtering preserving high-frequency detail.</p>
+          </article>
+        </div>
+
+        <figure class="paper-figure media-frame">
+          <img
+            src="./assets/images/method-concept.webp"
+            width="1800"
+            height="732"
+            alt="Conceptual diagram showing geometric deformation followed by Gaussian optimization to match the deformed radiance field."
+            loading="lazy"
+          >
+          <figcaption>
+            Geometry-only deformation introduces a mismatch. Optimizing the Gaussians against the deformed radiance field reduces it.
+          </figcaption>
+        </figure>
+
+        <figure class="paper-figure media-frame">
+          <img
+            src="./assets/images/method-pipeline.webp"
+            width="2400"
+            height="1320"
+            alt="Full two-stage pipeline for deforming and aligning a Gaussian radiance field."
+            loading="lazy"
+          >
+          <figcaption>
+            The complete pipeline: embedded deformation, dense radiance-field sampling, energy construction, and Gaussian optimization.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="section" id="results" aria-labelledby="results-title">
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">Evaluation</p>
+            <h2 id="results-title">Results</h2>
+          </div>
+          <p>
+            Across synthetic and real-world data, our method reduces spikes, blur, holes, and loss of detail caused by geometry-only deformation.
+          </p>
+        </div>
+
+        <div class="results-grid">
+          <figure class="result-card">
+            <div class="result-image">
+              <img
+                src="./assets/images/result-stripes.webp"
+                width="2400"
+                height="800"
+                alt="Stripes bending comparison between the input deformation, baseline, and our result."
+                loading="lazy"
+              >
+            </div>
+            <figcaption>
+              <strong>Large bending deformation.</strong> Radiance-field alignment removes the spikes and blur introduced by geometry-only deformation.
+            </figcaption>
+          </figure>
+
+          <figure class="result-card">
+            <div class="result-image">
+              <img
+                src="./assets/images/result-glove.webp"
+                width="2400"
+                height="800"
+                alt="Glove deformation comparison between the input deformation, baseline, and our result."
+                loading="lazy"
+              >
+            </div>
+            <figcaption>
+              <strong>Large local deformation.</strong> Fine detail around the folded glove is better preserved than with geometry-only editing.
+            </figcaption>
+          </figure>
+
+          <figure class="result-card result-card-wide method-comparison">
+            <div class="comparison-table">
+              <div class="comparison-spacer" aria-hidden="true"></div>
+              <div class="comparison-labels">
+                <span>Input &amp; Deform</span>
+                <span>Mesh (GT)</span>
+                <span>
+                  GaussianMesh
+                  <a class="method-citation" href="https://arxiv.org/abs/2402.04796" target="_blank" rel="noopener noreferrer">[Gao et al. 2024]</a>
+                </span>
+                <span>
+                  Gaussian Frosting
+                  <a class="method-citation" href="https://arxiv.org/abs/2403.14554" target="_blank" rel="noopener noreferrer">[Guédon &amp; Lepetit 2024]</a>
+                </span>
+                <span>Ours</span>
+              </div>
+
+              <p class="dataset-label">Hotdog</p>
+              <div class="result-image comparison-image">
+                <img
+                  src="./assets/images/result-hotdog-3d.webp"
+                  width="4000"
+                  height="800"
+                  alt="Hotdog comparison showing the input deformation, mesh ground truth, GaussianMesh, Gaussian Frosting, and our result."
+                  loading="lazy"
+                >
+              </div>
+
+              <p class="dataset-label">Ship</p>
+              <div class="result-image comparison-image">
+                <img
+                  src="./assets/images/result-ship.webp"
+                  width="4000"
+                  height="800"
+                  alt="Ship comparison showing the input deformation, mesh ground truth, GaussianMesh, Gaussian Frosting, and our result."
+                  loading="lazy"
+                >
+              </div>
+            </div>
+            <figcaption>
+              <strong>Comparison with existing 3DGS deformation methods.</strong> Under the same spatial deformation, our results more closely match the deformed mesh ground truth and better preserve fine structures.
+            </figcaption>
+          </figure>
+        </div>
+
+        <aside class="method-references" aria-labelledby="method-references-title">
+          <h3 id="method-references-title">Compared Methods</h3>
+          <ol>
+            <li>
+              Lin Gao, Jie Yang, Bo-Tao Zhang, Jia-Mu Sun, Yu-Jie Yuan, Hongbo Fu, and Yu-Kun Lai.
+              <a href="https://arxiv.org/abs/2402.04796" target="_blank" rel="noopener noreferrer"><cite>Mesh-based Gaussian Splatting for Real-time Large-scale Deformation</cite></a>.
+              arXiv:2402.04796, 2024.
+            </li>
+            <li>
+              Antoine Guédon and Vincent Lepetit.
+              <a href="https://arxiv.org/abs/2403.14554" target="_blank" rel="noopener noreferrer"><cite>Gaussian Frosting: Editable Complex Radiance Fields with Real-Time Rendering</cite></a>.
+              European Conference on Computer Vision (ECCV), 2024.
+            </li>
+          </ol>
+        </aside>
+
+        <div class="more-results-heading">
+          <div>
+            <p class="eyebrow">Novel-view synthesis</p>
+            <h3>More Results</h3>
+          </div>
+          <p>Additional twisting, scaling, and bending results shown from multiple viewpoints.</p>
+        </div>
+
+        <div class="more-results-grid">
+          <figure class="more-result-card">
+            <img
+              src="./assets/images/more-stripes.webp"
+              width="1200"
+              height="800"
+              alt="Additional stripes deformation results shown from three viewpoints."
+              loading="lazy"
+            >
+            <figcaption>Stripes</figcaption>
+          </figure>
+          <figure class="more-result-card">
+            <img
+              src="./assets/images/more-richflower.webp"
+              width="1200"
+              height="800"
+              alt="Additional deformation results on the real-world Rich Flower dataset from three viewpoints."
+              loading="lazy"
+            >
+            <figcaption>Rich Flower · real-world capture</figcaption>
+          </figure>
+          <figure class="more-result-card">
+            <img
+              src="./assets/images/more-glove.webp"
+              width="1200"
+              height="800"
+              alt="Additional glove deformation results shown from three viewpoints."
+              loading="lazy"
+            >
+            <figcaption>Glove</figcaption>
+          </figure>
+          <figure class="more-result-card">
+            <img
+              src="./assets/images/more-shoe.webp"
+              width="1200"
+              height="800"
+              alt="Additional shoe deformation results shown from three viewpoints."
+              loading="lazy"
+            >
+            <figcaption>Shoe</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="section citation" id="bibtex" aria-labelledby="bibtex-title">
+        <div class="section-intro citation-heading">
+          <div>
+            <p class="eyebrow">Reference</p>
+            <h2 id="bibtex-title">BibTeX</h2>
+          </div>
+          <button class="copy-button" type="button" data-copy-bibtex aria-describedby="copy-status">
+            Copy citation
+          </button>
+        </div>
+        <div class="code-wrap">
+          <pre><code id="bibtex-code">@ARTICLE{Tong2025arapGaussian,
+  author  = {Tong, Xinhao and Shao, Tianjia and Weng, Yanlin and Yang, Yin and Zhou, Kun},
+  journal = {IEEE Transactions on Visualization and Computer Graphics},
+  title   = {As-Rigid-As-Possible Deformation of Gaussian Radiance Fields},
+  year    = {2025},
+  doi     = {10.1109/TVCG.2025.3555404}
+}</code></pre>
+          <p class="copy-status" id="copy-status" aria-live="polite"></p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>
+        <p class="footer-title">As-Rigid-As-Possible Deformation of Gaussian Radiance Fields</p>
+        <p>
+          Supported by NSF China, NSF, the XPLORER PRIZE, and Adobe Research. The implementation builds on 3D Gaussian Splatting and SIBR.
+        </p>
+      </div>
+      <a href="#paper-title">Back to top</a>
+    </footer>
+    <script src="./script.js" defer></script>
+  </body>
+</html>
