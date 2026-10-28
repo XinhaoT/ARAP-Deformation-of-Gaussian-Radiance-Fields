@@ -2,7 +2,7 @@
 
 ## Description
 
-This is an official implementation of the paper *As-Rigid-As-Possible Deformation of Gaussian Radiance Fields* (TVCG 2025) [[paper]](https://doi.ieeecomputersociety.org/10.1109/TVCG.2025.3555404). It includes an interactive system that allows users to perform ARAP deformation on Gaussian Radiance Fields interactively.
+This is an official implementation of the paper *As-Rigid-As-Possible Deformation of Gaussian Radiance Fields* (TVCG 2025) [[paper]](https://doi.ieeecomputersociety.org/10.1109/TVCG.2025.3555404)[[project]](https://xinhaot.github.io/ARAP-Deformation-of-Gaussian-Radiance-Fields/). It includes an interactive system that allows users to perform ARAP deformation on Gaussian Radiance Fields interactively.
 
 ## Installation
 
